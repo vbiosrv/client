@@ -39,7 +39,12 @@ const theme = createTheme({
 
 // Проверяем находимся ли внутри Telegram WebApp
 const isInsideTelegramWebApp = (): boolean => {
-  return !!window.Telegram?.WebApp?.initData;
+  const tgWebApp = window.Telegram?.WebApp;
+  // initData непустая строка ИЛИ есть данные пользователя в initDataUnsafe
+  return !!(tgWebApp && (
+    (tgWebApp.initData && tgWebApp.initData.length > 0) ||
+    tgWebApp.initDataUnsafe?.user?.id
+  ));
 };
 
 function ThemeToggle() {
