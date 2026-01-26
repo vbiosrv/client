@@ -79,6 +79,15 @@ export const auth = {
     return response;
   },
 
+  register: async (username: string, password: string) => {
+    const response = await api.put('/user/auth', { login: username, password });
+    const sessionId = response.data?.session_id || response.data?.id;
+    if (sessionId) {
+      localStorage.setItem('shm_token', sessionId);
+    }
+    return response;
+  },
+
   getCurrentUser: () => api.get('/user'),
 };
 

@@ -1,7 +1,7 @@
 import '@mantine/core/styles.css';
 import '@mantine/notifications/styles.css';
-import { useEffect } from 'react';
-import { MantineProvider, createTheme, AppShell, Burger, Group, Text, NavLink, ActionIcon, useMantineColorScheme, useComputedColorScheme, Center, Loader } from '@mantine/core';
+import { useEffect, useState } from 'react';
+import { MantineProvider, createTheme, AppShell, Burger, Group, Text, NavLink, ActionIcon, useMantineColorScheme, useComputedColorScheme, Center, Loader, Box } from '@mantine/core';
 import { Notifications } from '@mantine/notifications';
 import { useDisclosure } from '@mantine/hooks';
 import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from 'react-router-dom';
@@ -37,6 +37,11 @@ const theme = createTheme({
   },
 });
 
+// Проверяем находимся ли внутри Telegram WebApp
+const isInsideTelegramWebApp = (): boolean => {
+  return !!window.Telegram?.WebApp?.initData;
+};
+
 function ThemeToggle() {
   const { setColorScheme } = useMantineColorScheme();
   const computedColorScheme = useComputedColorScheme('light');
@@ -53,11 +58,117 @@ function ThemeToggle() {
   );
 }
 
+// Нижняя навигация для WebApp
+function BottomNavigation() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { menuItems } = useStore();
+  const computedColorScheme = useComputedColorScheme('light');
+
+  const iconMap: Record<string, React.ReactNode> = {
+    '/': <IconUser size={22} />,
+    '/services': <IconServer size={22} />,
+    '/payments': <IconCreditCard size={22} />,
+    '/withdrawals': <IconReceipt size={22} />,
+  };
+
+  const enabledItems = menuItems.filter(item => item.enabled);
+
+  return (
+    <Box
+      style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+        background: computedColorScheme === 'dark'
+          ? 'rgba(26, 27, 30, 0.85)'
+          : 'rgba(255, 255, 255, 0.85)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        borderTop: computedColorScheme === 'dark'
+          ? '1px solid rgba(255, 255, 255, 0.1)'
+          : '1px solid rgba(0, 0, 0, 0.1)',
+        zIndex: 1000,
+      }}
+    >
+      <Group justify="center" gap={0} style={{ padding: '8px 16px' }}>
+        {enabledItems.map((item) => {
+          const isActive = location.pathname === item.path ||
+            (item.path === '/' && location.pathname === '/');
+          return (
+            <ActionIcon
+              key={item.id}
+              variant="subtle"
+              size={56}
+              onClick={() => navigate(item.path)}
+              style={{
+                flexDirection: 'column',
+                height: 56,
+                borderRadius: 12,
+                color: isActive ? 'var(--mantine-color-blue-6)' : undefined,
+              }}
+            >
+              {iconMap[item.path]}
+              <Text size="xs" mt={4}>{item.label}</Text>
+            </ActionIcon>
+          );
+        })}
+      </Group>
+    </Box>
+  );
+}
+
 function AppContent() {
   const [opened, { toggle, close }] = useDisclosure();
   const location = useLocation();
   const navigate = useNavigate();
   const { user, menuItems, themeConfig, isAuthenticated, isLoading, setUser, setTelegramPhoto, setIsLoading, logout } = useStore();
+  const [isTelegramWebApp] = useState(isInsideTelegramWebApp);
+
+  // Инициализация Telegram WebApp
+  useEffect(() => {
+    const tgWebApp = window.Telegram?.WebApp;
+    if (tgWebApp && isTelegramWebApp) {
+      tgWebApp.ready();
+      tgWebApp.expand();
+
+      // Устанавливаем цвета
+      if (tgWebApp.setHeaderColor) {
+        tgWebApp.setHeaderColor('secondary_bg_color');
+      }
+      if (tgWebApp.setBackgroundColor) {
+        tgWebApp.setBackgroundColor('secondary_bg_color');
+      }
+    }
+  }, [isTelegramWebApp]);
+
+  // BackButton для Telegram WebApp
+  useEffect(() => {
+    const tgWebApp = window.Telegram?.WebApp;
+    if (!tgWebApp || !isTelegramWebApp) return;
+
+    const backButton = tgWebApp.BackButton;
+    if (!backButton) return;
+
+    // Показываем BackButton если не на главной странице (профиль)
+    const isMainPage = location.pathname === '/' || location.pathname === '';
+
+    if (isMainPage) {
+      backButton.hide();
+    } else {
+      backButton.show();
+      backButton.onClick(() => {
+        navigate('/');
+      });
+    }
+
+    return () => {
+      backButton.hide();
+      backButton.offClick(() => {});
+    };
+  }, [location.pathname, navigate, isTelegramWebApp]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -69,6 +180,7 @@ function AppContent() {
 
       if (hasTelegramWebApp && tgWebApp) {
         tgWebApp.ready();
+        tgWebApp.expand();
         try {
           await auth.telegramAuth(tgWebApp.initData, config.TELEGRAM_PROFILE);
           const response = await auth.getCurrentUser();
@@ -131,6 +243,24 @@ function AppContent() {
     return <Login />;
   }
 
+  // WebApp layout - без боковой панели, с нижней навигацией
+  if (isTelegramWebApp) {
+    return (
+      <Box style={{ minHeight: '100vh', paddingBottom: 80 }}>
+        <Box p="md">
+          <Routes>
+            <Route path="/services" element={<Services />} />
+            <Route path="/payments" element={<Payments />} />
+            <Route path="/withdrawals" element={<Withdrawals />} />
+            <Route path="*" element={<Profile />} />
+          </Routes>
+        </Box>
+        <BottomNavigation />
+      </Box>
+    );
+  }
+
+  // Обычный desktop layout
   return (
     <AppShell
       header={{ height: 60 }}

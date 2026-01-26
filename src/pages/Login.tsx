@@ -23,7 +23,16 @@ declare global {
           };
         };
         ready: () => void;
+        expand: () => void;
         close: () => void;
+        setHeaderColor: (color: string) => void;
+        setBackgroundColor: (color: string) => void;
+        BackButton: {
+          show: () => void;
+          hide: () => void;
+          onClick: (callback: () => void) => void;
+          offClick: (callback: () => void) => void;
+        };
       };
     };
   }
@@ -37,7 +46,6 @@ export default function Login() {
 
   const isInsideTelegramWebApp = !!window.Telegram?.WebApp?.initData;
   const hasTelegramWebApp = isInsideTelegramWebApp && config.TELEGRAM_WEBAPP_AUTH_ENABLE === 'true';
-  // Не показываем виджет внутри Telegram WebApp
   const hasTelegramWidget = !isInsideTelegramWebApp && !!config.TELEGRAM_BOT_NAME && config.TELEGRAM_BOT_AUTH_ENABLE === 'true';
 
   useEffect(() => {
@@ -45,7 +53,7 @@ export default function Login() {
       window.Telegram?.WebApp?.ready();
       handleTelegramWebAppAuth();
     }
-  }, []);
+  }, [hasTelegramWebApp]);
 
   const handleLogin = async () => {
     if (!formData.login || !formData.password) {
@@ -65,6 +73,39 @@ export default function Login() {
       notifications.show({ title: 'Ошибка', message: 'Неверный логин или пароль', color: 'red' });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRegister = async () => {
+    if (!formData.login || !formData.password) {
+      notifications.show({ title: 'Ошибка', message: 'Заполните все поля', color: 'red' });
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      notifications.show({ title: 'Ошибка', message: 'Пароли не совпадают', color: 'red' });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await auth.register(formData.login, formData.password);
+      notifications.show({ title: 'Успешно', message: 'Регистрация прошла успешно. Теперь войдите.', color: 'green' });
+      // Переключаемся на авторизацию, сохраняя логин
+      setMode('login');
+      setFormData({ ...formData, confirmPassword: '' });
+    } catch {
+      notifications.show({ title: 'Ошибка', message: 'Не удалось зарегистрироваться', color: 'red' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (mode === 'login') {
+      handleLogin();
+    } else {
+      handleRegister();
     }
   };
 
@@ -163,36 +204,43 @@ export default function Login() {
             </>
           )}
 
-          <Stack gap="sm">
-            <TextInput
-              label="Логин"
-              placeholder="Введите логин"
-              value={formData.login}
-              onChange={(e) => setFormData({ ...formData, login: e.target.value })}
-            />
-            <PasswordInput
-              label="Пароль"
-              placeholder="Введите пароль"
-              value={formData.password}
-              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-            />
-            {mode === 'register' && (
-              <PasswordInput
-                label="Подтвердите пароль"
-                placeholder="Повторите пароль"
-                value={formData.confirmPassword}
-                onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+          <form onSubmit={handleSubmit}>
+            <Stack gap="sm">
+              <TextInput
+                label="Логин"
+                placeholder="Введите логин"
+                value={formData.login}
+                onChange={(e) => setFormData({ ...formData, login: e.target.value })}
+                autoComplete="username"
+                name="username"
               />
-            )}
-          </Stack>
-
-          <Button
-            leftSection={mode === 'login' ? <IconLogin size={18} /> : <IconUserPlus size={18} />}
-            onClick={handleLogin}
-            loading={loading}
-          >
-            {mode === 'login' ? 'Войти' : 'Зарегистрироваться'}
-          </Button>
+              <PasswordInput
+                label="Пароль"
+                placeholder="Введите пароль"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                name="password"
+              />
+              {mode === 'register' && (
+                <PasswordInput
+                  label="Подтвердите пароль"
+                  placeholder="Повторите пароль"
+                  value={formData.confirmPassword}
+                  onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                  autoComplete="new-password"
+                  name="confirm-password"
+                />
+              )}
+              <Button
+                type="submit"
+                leftSection={mode === 'login' ? <IconLogin size={18} /> : <IconUserPlus size={18} />}
+                loading={loading}
+              >
+                {mode === 'login' ? 'Войти' : 'Зарегистрироваться'}
+              </Button>
+            </Stack>
+          </form>
 
           <Text size="sm" ta="center">
             {mode === 'login' ? (
