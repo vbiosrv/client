@@ -8,6 +8,7 @@ import { BrowserRouter, Routes, Route, Link, useLocation, useNavigate } from 're
 import { IconServer, IconCreditCard, IconSun, IconMoon, IconUser, IconLogout, IconReceipt } from '@tabler/icons-react';
 import { useStore } from './store/useStore';
 import { auth } from './api/client';
+import { config } from './config';
 
 // Pages
 import Services from './pages/Services';
