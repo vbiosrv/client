@@ -49,7 +49,7 @@ export const auth = {
 
   telegramAuth: async (initData: string, profile: string) => {
     const response = await api.post('/telegram/webapp/auth', {
-      init_data: initData,
+      initData: initData,
       profile: profile,
     });
     const sessionId = response.data?.session_id || response.data?.id;
