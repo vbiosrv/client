@@ -42,15 +42,35 @@ export default function Login() {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ login: '', password: '', confirmPassword: '' });
+  const [isInsideTelegramWebApp, setIsInsideTelegramWebApp] = useState(false);
   const { setUser, setTelegramPhoto } = useStore();
 
-  // Проверяем что мы внутри Telegram WebApp
-  // initData непустая строка ИЛИ есть данные пользователя в initDataUnsafe
-  const tgWebApp = window.Telegram?.WebApp;
-  const isInsideTelegramWebApp = !!(tgWebApp && (
-    (tgWebApp.initData && tgWebApp.initData.length > 0) || 
-    tgWebApp.initDataUnsafe?.user?.id
-  ));
+  // Проверяем Telegram WebApp при монтировании и после загрузки скрипта
+  useEffect(() => {
+    const checkTelegramWebApp = () => {
+      const tgWebApp = window.Telegram?.WebApp;
+      const isInside = !!(tgWebApp && (
+        (tgWebApp.initData && tgWebApp.initData.length > 0) || 
+        tgWebApp.initDataUnsafe?.user?.id
+      ));
+      console.log('Telegram WebApp check:', { 
+        hasTelegram: !!window.Telegram,
+        hasWebApp: !!tgWebApp,
+        initData: tgWebApp?.initData,
+        user: tgWebApp?.initDataUnsafe?.user,
+        isInside 
+      });
+      setIsInsideTelegramWebApp(isInside);
+    };
+
+    // Проверяем сразу
+    checkTelegramWebApp();
+    
+    // И ещё раз через небольшую задержку (скрипт мог не успеть загрузиться)
+    const timer = setTimeout(checkTelegramWebApp, 100);
+    return () => clearTimeout(timer);
+  }, []);
+
   const hasTelegramWebApp = isInsideTelegramWebApp && config.TELEGRAM_WEBAPP_AUTH_ENABLE === 'true';
   // Виджет показываем только если НЕ внутри WebApp
   const hasTelegramWidget = !isInsideTelegramWebApp && !!config.TELEGRAM_BOT_NAME && config.TELEGRAM_BOT_AUTH_ENABLE === 'true';
