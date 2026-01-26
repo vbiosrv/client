@@ -35,8 +35,10 @@ export default function Login() {
   const [formData, setFormData] = useState({ login: '', password: '', confirmPassword: '' });
   const { setUser, setTelegramPhoto } = useStore();
 
-  const hasTelegramWebApp = !!window.Telegram?.WebApp?.initData && config.TELEGRAM_WEBAPP_AUTH_ENABLE === 'true';
-  const hasTelegramWidget = !!config.TELEGRAM_BOT_NAME && config.TELEGRAM_BOT_AUTH_ENABLE === 'true';
+  const isInsideTelegramWebApp = !!window.Telegram?.WebApp?.initData;
+  const hasTelegramWebApp = isInsideTelegramWebApp && config.TELEGRAM_WEBAPP_AUTH_ENABLE === 'true';
+  // Не показываем виджет внутри Telegram WebApp
+  const hasTelegramWidget = !isInsideTelegramWebApp && !!config.TELEGRAM_BOT_NAME && config.TELEGRAM_BOT_AUTH_ENABLE === 'true';
 
   useEffect(() => {
     if (hasTelegramWebApp) {

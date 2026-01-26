@@ -44,10 +44,14 @@ export const auth = {
   },
 
   telegramAuth: async (initData: string, profile: string) => {
-    return api.post('/telegram/webapp/auth', {
+    const response = await api.post('/telegram/webapp/auth', {
       init_data: initData,
       profile: profile,
     });
+    if (response.data?.session_id) {
+      localStorage.setItem('shm_token', response.data.session_id);
+    }
+    return response;
   },
 
   telegramWidgetAuth: async (userData: {
@@ -59,10 +63,14 @@ export const auth = {
     auth_date: number;
     hash: string;
   }) => {
-    return api.post('/telegram/web/auth', {
+    const response = await api.post('/telegram/web/auth', {
       ...userData,
       register_if_not_exists: 1,
     });
+    if (response.data?.session_id) {
+      localStorage.setItem('shm_token', response.data.session_id);
+    }
+    return response;
   },
 
   getCurrentUser: () => api.get('/user'),
@@ -97,7 +105,6 @@ export const servicesApi = {
 export const telegramApi = {
   getSettings: () => api.get('/telegram/user'),
   updateSettings: (data: Record<string, unknown>) => api.post('/telegram/user', data),
-  getProfilePhoto: (userId: number) => api.get(`/telegram/profile_photo/${userId}`),
 };
 
 // Promo API
