@@ -1,50 +1,99 @@
-<form name="userForm" class="form-horizontal row-border">
-    <div class="modal-header">
-        <h4 class="modal-title">VPN подписка</h4>
-    </div>
+<form name="userForm" class="form-horizontal">
+
+    <!-- Модальное окно заголовок -->
+<div class="modal-header bg-primary text-white d-flex align-items-center justify-content-between">
+    <h4 class="modal-title mb-0">
+        <i class="fa fa-shield"></i> XRay / VLESS+Reality подписка
+    </h4>
+
+    <button type="button"
+            class="btn btn-sm btn-light"
+            ng-click="cancel()"
+            aria-label="Close">
+        <i class="fa fa-times"></i>
+    </button>
+</div>
+
     <div class="modal-body">
-        <div class="form-group">
-            <label class="col-sm-2 control-label">Тариф</label>
-            <div class="col-sm-8">
-                <input type="text" ng-model="data.service.name" class="form-control" readonly="readonly">
+
+        <!-- Основная информация -->
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label">Тариф</label>
+                    <div class="col-sm-8">
+                        <input type="text" ng-model="data.service.name" class="form-control" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label">Статус</label>
+                    <div class="col-sm-8">
+                        <input type="text" ng-model="row.status" class="form-control" readonly>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="form-group">
-            <label class="col-sm-2 control-label">Статус</label>
-            <div class="col-sm-3">
-                <input type="text" ng-model="row.status" class="form-control" readonly="readonly">
+
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label">Стоимость</label>
+                    <div class="col-sm-8">
+                        <input type="text" ng-model="data.service.cost" class="form-control" readonly>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group row">
+                    <label class="col-sm-4 col-form-label">Действует до</label>
+                    <div class="col-sm-8">
+                        <input type="text" ng-model="data.expire" class="form-control" readonly>
+                    </div>
+                </div>
             </div>
         </div>
-        <div class="form-group">
-            <label class="col-sm-2 control-label">Стоимость</label>
-            <div class="col-sm-3">
-                <input type="text" ng-model="data.service.cost" class="form-control" readonly="readonly">
-            </div>
-            <label class="col-sm-2 control-label">Действует до</label>
-            <div class="col-sm-3">
-                <input type="text" ng-model="data.expire" class="form-control" readonly="readonly">
-            </div>
-        </div>
-        <div class="form-group" ng-if="row.status=='ACTIVE'">
-            <label class="col-sm-2 control-label">Qr-код</label>
-            <div class="col-sm-9">
-                <button class="btn btn-success" ng-click="openQrModal()">Показать</button>
-            </div>
-        </div>
-        <div class="form-group" ng-if="row.status=='ACTIVE'">
-            <label class="col-sm-2 control-label">Ссылка</label>
-            <div class="col-sm-9">
-                <button class="btn btn-info" ng-click="CopyUrl()" >
-                    <span ng-if="!copied">Скопировать</span>
-                    <span ng-if="copied"><i class="fa fa-check-circle text-success"></i> Скопировано</span>
+
+        <hr>
+
+        <!-- Действия для активной подписки -->
+        <div ng-if="row.status === 'ACTIVE'" class="text-center mb-3">
+
+            <div class="d-flex justify-content-center gap-2 flex-wrap">
+                <button type="button" class="btn btn-lg btn-primary" ng-click="openQrModal()">
+                    <i class="fa fa-qrcode"></i> QR-код
+                </button>
+                <button type="button" class="btn btn-lg btn-info" ng-click="CopyUrl()">
+                    <span ng-if="!copied">
+                        <i class="fa fa-link"></i> Скопировать ссылку
+                    </span>
+                    <span ng-if="copied">
+                        <i class="fa fa-check-circle"></i> Скопировано!
+                    </span>
                 </button>
             </div>
-        </div>
-    </div> <!-- modal-body -->
 
-    <div class="modal-footer">
-        <button class="btn btn-warning" ng-click="cancel()">Cancel</button>
-        <button class="btn btn-danger pull-left" ng-if="row.status=='BLOCK' || row.status=='ACTIVE' || row.status=='NOT PAID'" ng-click="delete()">Удалить</b
-utton>
+            <p class="small text-muted mt-2">
+                Подходит для v2rayNG, Nekobox, Hiddify, Shadowrocket, Streisand и др.
+            </p>
+
+        </div>
+
+        <!-- Сообщение для неактивных подписок -->
+        <div ng-if="row.status !== 'ACTIVE'" class="alert alert-info mt-3">
+            <i class="fa fa-info-circle"></i>
+            Ссылка и QR-код станут доступны после активации подписки
+        </div>
+
     </div>
+
+        <div>
+            <button class="btn btn-warning me-2" ng-click="cancel()">Cancel</button>
+            <button class="btn btn-danger" ng-if="row.status=='BLOCK' || row.status=='ACTIVE' || row.status=='NOT PAID'" ng-click="delete()">
+                Удалить
+            </button>
+        </div>
+    </div>
+
 </form>
