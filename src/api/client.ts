@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { getCookie, setCookie, removeCookie, extendCookie } from './cookie';
+import { getCookie, setCookie, removeCookie, extendCookie, getPartnerCookie, removePartnerCookie } from './cookie';
 
 // API client for SHM backend
 export const api = axios.create({
@@ -61,19 +61,34 @@ export const auth = {
     auth_date: number;
     hash: string;
   }) => {
+    const partnerId = getPartnerCookie();
     const response = await api.post('/telegram/web/auth', {
       ...userData,
       register_if_not_exists: 1,
+      ...(partnerId && { partner_id: partnerId }),
     });
     const sessionId = response.data?.session_id || response.data?.id;
     if (sessionId) {
       setCookie(sessionId);
+      // Remove partner cookie after successful auth/registration
+      if (partnerId) {
+        removePartnerCookie();
+      }
     }
     return response;
   },
 
   register: async (username: string, password: string) => {
-    const response = await api.put('/user', { login: username, password });
+    const partnerId = getPartnerCookie();
+    const data: Record<string, string> = { login: username, password };
+    if (partnerId) {
+      data.partner_id = partnerId;
+    }
+    const response = await api.put('/user', data);
+    // Remove partner cookie after successful registration
+    if (partnerId) {
+      removePartnerCookie();
+    }
     return response;
   },
 

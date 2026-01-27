@@ -9,9 +9,12 @@ import { IconServer, IconCreditCard, IconSun, IconMoon, IconUser, IconLogout, Ic
 import { useTranslation } from 'react-i18next';
 import { useStore } from './store/useStore';
 import { auth } from './api/client';
-import { getCookie, removeCookie } from './api/cookie';
+import { getCookie, removeCookie, parseAndSavePartnerId } from './api/cookie';
 import { config } from './config';
 import LanguageSwitcher from './components/LanguageSwitcher';
+
+// Parse partner_id from URL on app load
+parseAndSavePartnerId();
 
 // Pages
 import Services from './pages/Services';
