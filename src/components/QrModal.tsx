@@ -1,4 +1,5 @@
 import { Modal, Stack, Center, Text, Button, Group, CopyButton, Tooltip, ActionIcon } from '@mantine/core';
+import { useTranslation } from 'react-i18next';
 import { IconCopy, IconCheck, IconDownload } from '@tabler/icons-react';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -8,9 +9,12 @@ interface QrModalProps {
   data: string;
   title?: string;
   filename?: string;
+  onDownload?: () => void;
 }
 
-export default function QrModal({ opened, onClose, data, title = 'QR-код', filename }: QrModalProps) {
+export default function QrModal({ opened, onClose, data, title, filename, onDownload }: QrModalProps) {
+  const { t } = useTranslation();
+
   const handleDownloadQr = () => {
     const svg = document.getElementById('qr-code-svg');
     if (!svg) return;
@@ -34,20 +38,10 @@ export default function QrModal({ opened, onClose, data, title = 'QR-код', fi
     img.src = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(svgData)));
   };
 
-  const handleDownloadConfig = () => {
-    const blob = new Blob([data], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename ? `${filename}.conf` : 'config.conf';
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   if (!data) return null;
 
   return (
-    <Modal opened={opened} onClose={onClose} title={title} size="md">
+    <Modal opened={opened} onClose={onClose} title={title || t('services.qrCode')} size="md">
       <Stack gap="md" align="center">
         <Center p="md" bg="white" style={{ borderRadius: 8 }}>
           <QRCodeSVG
@@ -66,28 +60,32 @@ export default function QrModal({ opened, onClose, data, title = 'QR-код', fi
         <Group>
           <CopyButton value={data}>
             {({ copied, copy }) => (
-              <Tooltip label={copied ? 'Скопировано!' : 'Копировать'}>
+              <Tooltip label={copied ? t('common.copied') : t('common.copy')}>
                 <Button
                   variant="light"
                   leftSection={copied ? <IconCheck size={16} /> : <IconCopy size={16} />}
                   color={copied ? 'teal' : 'blue'}
                   onClick={copy}
                 >
-                  {copied ? 'Скопировано' : 'Копировать'}
+                  {copied ? t('common.copied') : t('common.copy')}
                 </Button>
               </Tooltip>
             )}
           </CopyButton>
 
-          <Tooltip label="Скачать QR">
+          <Tooltip label={t('services.downloadQr')}>
             <ActionIcon variant="light" size="lg" onClick={handleDownloadQr}>
               <IconDownload size={18} />
             </ActionIcon>
           </Tooltip>
 
-          {filename && (
-            <Button variant="light" leftSection={<IconDownload size={16} />} onClick={handleDownloadConfig}>
-              Скачать конфиг
+          {onDownload && (
+            <Button
+              variant="light"
+              leftSection={<IconDownload size={16} />}
+              onClick={onDownload}
+            >
+              {t('services.downloadConfig')}
             </Button>
           )}
         </Group>
