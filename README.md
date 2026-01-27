@@ -20,7 +20,7 @@ services:
 #   admin:
 #     ...
   client:
-    image: danuk/shm-client:latest
+    image: bkeenke/shm-client:latest
     pull_policy: always
     restart: always
     ports:
@@ -51,6 +51,11 @@ services:
 ## Установка на другом сервере
 
 ```bash
+git clone https://github.com/bkeenke/shm-client-2
+```
+
+```bash
+cd shm-client-2
 npm install
 ```
 
