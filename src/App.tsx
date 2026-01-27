@@ -323,7 +323,16 @@ function AppContent() {
         <Group h="100%" px="md" justify="space-between">
           <Group>
             <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-            <Text size="lg" fw={700} c="blue" onClick={() => navigate('/')} style={{ cursor: 'pointer' }}>{config.APP_NAME}</Text>
+            <Text
+              size="lg"
+              fw={700}
+              c="blue"
+              onClick={() => navigate('/')}
+              style={{ cursor: 'pointer' }}
+              visibleFrom={config.APP_NAME.length > 10 ? 'sm' : undefined}
+            >
+              {config.APP_NAME}
+            </Text>
           </Group>
           <Group>
             <Text size="sm" style={{ cursor: 'pointer' }} onClick={() => navigate('/')}>{user?.login}</Text>
