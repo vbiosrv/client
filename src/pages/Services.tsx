@@ -41,7 +41,7 @@ function normalizeCategory(category: string): string {
   if (category.match(/remna|remnawave|marzban|marz|mz/i)) {
     return 'proxy';
   }
-  if (category.match(/^(vpn|wg|awg|vpn-wg|vpn-awg)$/i)) {
+  if (category.match(/^(vpn|wg|awg)/i)) {
     return 'vpn';
   }
   if (['web_tariff', 'web', 'mysql', 'mail', 'hosting'].includes(category)) {
