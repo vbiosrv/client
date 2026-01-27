@@ -36,6 +36,8 @@ export default function TelegramLoginButton({
   showUserPhoto = true,
 }: TelegramLoginButtonProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const onAuthRef = useRef(onAuth);
+  onAuthRef.current = onAuth;
 
   useEffect(() => {
     if (!botName || !containerRef.current) return;
@@ -43,7 +45,7 @@ export default function TelegramLoginButton({
     // Callback для виджета
     const callbackName = 'TelegramLoginWidget_' + Math.random().toString(36).substring(7);
     (window as unknown as Record<string, unknown>)[callbackName] = (user: TelegramUser) => {
-      onAuth(user);
+      onAuthRef.current(user);
     };
 
     // Создаём скрипт виджета
@@ -66,7 +68,7 @@ export default function TelegramLoginButton({
     return () => {
       delete (window as unknown as Record<string, unknown>)[callbackName];
     };
-  }, [botName, onAuth, buttonSize, cornerRadius, requestAccess, showUserPhoto]);
+  }, [botName, buttonSize, cornerRadius, requestAccess, showUserPhoto]);
 
   if (!botName) return null;
 
