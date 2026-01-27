@@ -165,7 +165,7 @@ function BottomNavigation() {
               (item.path === '/' && location.pathname === '/');
             return (
               <Box
-                key={item.id}
+                key={item.path}
                 onClick={() => navigate(item.path)}
                 style={{
                   display: 'flex',
@@ -183,7 +183,7 @@ function BottomNavigation() {
                 }}
               >
                 {iconMap[item.path]}
-                <Text size="xs" mt={4} fw={isActive ? 600 : 400}>{labelMap[item.path] || item.label}</Text>
+                <Text size="xs" mt={4} fw={isActive ? 600 : 400}>{labelMap[item.path]}</Text>
               </Box>
             );
           })}
@@ -357,10 +357,10 @@ function AppContent() {
         <AppShell.Section grow>
           {menuItems.filter(item => item.enabled).map((item) => (
             <NavLink
-              key={item.id}
+              key={item.path}
               component={Link}
               to={item.path}
-              label={labelMap[item.path] || item.label}
+              label={labelMap[item.path]}
               leftSection={iconMap[item.path]}
               active={location.pathname === item.path}
               variant="light"
