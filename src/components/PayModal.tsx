@@ -12,6 +12,7 @@ interface PaySystem {
   paysystem: string;
   allow_deletion: number;
   recurring: number;
+  internal?: number;
 }
 
 interface PayModalProps {
@@ -29,6 +30,7 @@ export default function PayModal({ opened, onClose }: PayModalProps) {
   const [deleting, setDeleting] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [autopaymentToDelete, setAutopaymentToDelete] = useState<{ paysystem: string; name: string } | null>(null);
+  const [processing, setProcessing] = useState(false);
 
   const loadPaySystems = async () => {
     if (loaded) return;
@@ -36,7 +38,6 @@ export default function PayModal({ opened, onClose }: PayModalProps) {
     try {
       const response = await userApi.getPaySystems();
       const rawData = response.data.data || [];
-      // Дедупликация по paysystem
       const seen = new Set<string>();
       const data = rawData.filter((ps: PaySystem) => {
         if (seen.has(ps.paysystem)) return false;
@@ -76,7 +77,6 @@ export default function PayModal({ opened, onClose }: PayModalProps) {
       });
       setDeleteConfirmOpen(false);
       setAutopaymentToDelete(null);
-      // Перезагружаем список
       setLoaded(false);
       loadPaySystems();
     } catch {
@@ -90,7 +90,7 @@ export default function PayModal({ opened, onClose }: PayModalProps) {
     }
   };
 
-  const handlePay = () => {
+  const handlePay = async () => {
     const paySystem = paySystems.find(ps => ps.paysystem === selectedPaySystem);
     if (!paySystem) {
       notifications.show({
@@ -100,11 +100,45 @@ export default function PayModal({ opened, onClose }: PayModalProps) {
       });
       return;
     }
-    window.open(paySystem.shm_url + payAmount, '_blank');
-    onClose();
+
+    if (paySystem.internal || paySystem.recurring) {
+      setProcessing(true);
+      try {
+        const response = await fetch(paySystem.shm_url + payAmount, {
+          method: 'GET',
+          credentials: 'include',
+        });
+
+        if (response.status === 200 || response.status === 204) {
+          notifications.show({
+            title: t('common.success'),
+            message: t('payments.paymentSuccess'),
+            color: 'green',
+          });
+          onClose();
+        } else {
+          const data = await response.json().catch(() => ({}));
+          notifications.show({
+            title: t('common.error'),
+            message: data.msg_ru || data.msg || t('payments.paymentError'),
+            color: 'red',
+          });
+        }
+      } catch {
+        notifications.show({
+          title: t('common.error'),
+          message: t('payments.paymentError'),
+          color: 'red',
+        });
+      } finally {
+        setProcessing(false);
+      }
+    } else {
+      window.open(paySystem.shm_url + payAmount, '_blank');
+      onClose();
+    }
   };
 
-  // Загружаем платёжные системы при открытии
   if (opened && !loaded && !loading) {
     loadPaySystems();
   }
@@ -126,7 +160,6 @@ export default function PayModal({ opened, onClose }: PayModalProps) {
           <Text c="dimmed">{t('payments.noPaymentSystems')}</Text>
         ) : (
           <>
-            {/* Список с автоплатежами для удаления */}
             {paySystems.some(ps => ps.allow_deletion === 1) && (
               <Card withBorder p="sm" radius="md">
                 <Text size="sm" fw={500} mb="xs">{t('payments.savedPaymentMethods')}</Text>
@@ -169,10 +202,10 @@ export default function PayModal({ opened, onClose }: PayModalProps) {
               suffix=" ₽"
             />
             <Group justify="flex-end">
-              <Button variant="light" onClick={onClose}>
+              <Button variant="light" onClick={onClose} disabled={processing}>
                 {t('common.cancel')}
               </Button>
-              <Button onClick={handlePay} disabled={!selectedPaySystem}>
+              <Button onClick={handlePay} disabled={!selectedPaySystem} loading={processing}>
                 {t('payments.pay')}
               </Button>
             </Group>

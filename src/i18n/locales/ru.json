@@ -164,7 +164,9 @@
     "paymentMethodDeleted": "Платёжный метод \"{{name}}\" удалён",
     "paymentMethodDeleteError": "Не удалось удалить платёжный метод",
     "autopaymentDeleted": "Автоплатёж удалён",
-    "autopaymentDeleteError": "Не удалось удалить автоплатёж"
+    "autopaymentDeleteError": "Не удалось удалить автоплатёж",
+    "paymentSuccess": "Платёж проведён успешно",
+    "paymentError": "Ошибка при проведении платежа"
   },
   "order": {
     "title": "Заказать услугу",

@@ -164,7 +164,9 @@
     "paymentMethodDeleted": "Payment method \"{{name}}\" deleted",
     "paymentMethodDeleteError": "Failed to delete payment method",
     "autopaymentDeleted": "Auto-payment deleted",
-    "autopaymentDeleteError": "Failed to delete auto-payment"
+    "autopaymentDeleteError": "Failed to delete autopayment",
+    "paymentSuccess": "Payment completed successfully",
+    "paymentError": "Payment failed"
   },
   "order": {
     "title": "Order service",
