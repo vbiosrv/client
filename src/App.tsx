@@ -367,13 +367,13 @@ function AppContent() {
           <Center py="md">
             <Text
               component="a"
-              href="https://myshm.ru"
+              href="https://vbios.ru"
               target="_blank"
               size="sm"
               c="dimmed"
               style={{ textDecoration: 'none' }}
             >
-              Powered by MySHM.ru
+              Powered by vBios
             </Text>
           </Center>
         </AppShell.Section>
