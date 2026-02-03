@@ -43,7 +43,7 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/exchange-shm-client:${{ steps.version.outputs.minor }}
-            ${{ secrets.DOCKERHUB_USERNAME }}/exchange-shm-client:latest
+            ${{ secrets.DOCKERHUB_USERNAME }}/vbios-client:${{ steps.version.outputs.minor }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/vbios-client:latest
           cache-from: type=gha,scope=client
           cache-to: type=gha,mode=max,scope=client
