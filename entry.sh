@@ -1,5 +1,4 @@
 #!/bin/sh
-#!/bin/sh
 
 FASTCGI_SERVER=""
 if [ ! -z "$SHM_HOST" ]; then
