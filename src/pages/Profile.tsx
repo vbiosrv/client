@@ -1,12 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Card, Text, Stack, Group, Button, TextInput, Avatar, Title, Modal, Loader, Center, Collapse, useMantineColorScheme } from '@mantine/core';
-import { IconUser, IconPhone, IconBrandTelegram, IconWallet, IconCreditCard, IconChevronDown, IconChevronUp, IconCreditCardPay, IconTrash } from '@tabler/icons-react';
+import { IconUser, IconPhone, IconBrandTelegram, IconWallet, IconCreditCard, IconChevronDown, IconChevronUp } from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import { userApi, telegramApi } from '../api/client';
 import PayModal from '../components/PayModal';
 import PromoModal from '../components/PromoModal';
-import ConfirmModal from '../components/ConfirmModal';
 import SecuritySettings from '../components/SecuritySettings';
 import { useStore } from '../store/useStore';
 
@@ -47,13 +46,6 @@ interface ForecastData {
   items: ForecastItem[];
 }
 
-interface AutoPayment {
-  paysystem: string;
-  name: string;
-  allow_deletion: number;
-  recurring?: number;
-}
-
 export default function Profile() {
   const { telegramPhoto } = useStore();
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -68,11 +60,6 @@ export default function Profile() {
   const [telegramSaving, setTelegramSaving] = useState(false);
   const [forecast, setForecast] = useState<ForecastData | null>(null);
   const [forecastOpen, setForecastOpen] = useState(false);
-  const [autopayments, setAutopayments] = useState<AutoPayment[]>([]);
-  const [autopaymentsOpen, setAutopaymentsOpen] = useState(false);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [autopaymentToDelete, setAutopaymentToDelete] = useState<{ paysystem: string; name: string } | null>(null);
-  const [deletingAutopayment, setDeletingAutopayment] = useState(false);
   const { colorScheme } = useMantineColorScheme();
   const { t } = useTranslation();
 
@@ -97,15 +84,6 @@ export default function Profile() {
           const forecastData = forecastResponse.data.data;
           if (Array.isArray(forecastData) && forecastData.length > 0) {
             setForecast(forecastData[0]);
-          }
-        } catch {
-        }
-        try {
-          const paySystems = await userApi.getPaySystems();
-          const paySystemsData = paySystems.data.data;
-          if (Array.isArray(paySystemsData)) {
-            const savedPayments = paySystemsData.filter((ps: AutoPayment) => ps.allow_deletion === 1);
-            setAutopayments(savedPayments);
           }
         } catch {
         }
@@ -140,47 +118,6 @@ export default function Profile() {
     const profileData = profileResponse.data.data;
     const data = Array.isArray(profileData) ? profileData[0] : profileData;
     setProfile(data);
-  };
-
-  const refreshAutopayments = async () => {
-    try {
-      const paySystems = await userApi.getPaySystems();
-      const paySystemsData = paySystems.data.data;
-      if (Array.isArray(paySystemsData)) {
-        const savedPayments = paySystemsData.filter((ps: AutoPayment) => ps.allow_deletion === 1);
-        setAutopayments(savedPayments);
-      }
-    } catch {
-    }
-  };
-
-  const openDeleteConfirm = (paysystem: string, name: string) => {
-    setAutopaymentToDelete({ paysystem, name });
-    setDeleteConfirmOpen(true);
-  };
-
-  const handleDeleteAutopayment = async () => {
-    if (!autopaymentToDelete) return;
-    setDeletingAutopayment(true);
-    try {
-      await userApi.deleteAutopayment(autopaymentToDelete.paysystem);
-      setDeleteConfirmOpen(false);
-      setAutopaymentToDelete(null);
-      notifications.show({
-        title: t('common.success'),
-        message: t('payments.paymentMethodDeleted', { name: autopaymentToDelete.name }),
-        color: 'green',
-      });
-      refreshAutopayments();
-    } catch {
-      notifications.show({
-        title: t('common.error'),
-        message: t('payments.paymentMethodDeleteError'),
-        color: 'red',
-      });
-    } finally {
-      setDeletingAutopayment(false);
-    }
   };
 
   const openTelegramModal = () => {
@@ -317,55 +254,6 @@ export default function Profile() {
         </Group>
       </Card>
 
-      {autopayments.length > 0 && (
-        <Card withBorder radius="md" p="lg">
-          <Group
-            justify="space-between"
-            style={{ cursor: 'pointer' }}
-            onClick={() => setAutopaymentsOpen(!autopaymentsOpen)}
-          >
-            <div>
-              <Text fw={500}>
-                <IconCreditCardPay size={18} style={{ verticalAlign: 'middle', marginRight: 8 }} />
-                {t('profile.savedPaymentMethods')}
-              </Text>
-              <Text size="sm" c="dimmed">
-                {autopayments.length} {autopayments.length === 1 ? t('profile.method') : t('profile.methods')}
-              </Text>
-            </div>
-            {autopaymentsOpen ? <IconChevronUp size={20} /> : <IconChevronDown size={20} />}
-          </Group>
-          <Collapse in={autopaymentsOpen}>
-            <Stack gap="sm" mt="md">
-              {autopayments.map((ap) => (
-                <Card key={ap.paysystem} withBorder radius="sm" p="sm">
-                  <Group justify="space-between" wrap="nowrap">
-                    <div>
-                      <Text size="sm" fw={500}>{ap.name}</Text>
-                      {ap.recurring === 1 && (
-                        <Text size="xs" c="dimmed">{t('profile.autopaymentEnabled')}</Text>
-                      )}
-                    </div>
-                    <Button
-                      variant="subtle"
-                      color="red"
-                      size="xs"
-                      leftSection={<IconTrash size={14} />}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openDeleteConfirm(ap.paysystem, ap.name);
-                      }}
-                    >
-                      {t('common.delete')}
-                    </Button>
-                  </Group>
-                </Card>
-              ))}
-            </Stack>
-          </Collapse>
-        </Card>
-      )}
-
       <Card withBorder radius="md" p="lg">
         <Group justify="space-between" mb="md">
           <Text fw={500}>{t('profile.personalData')}</Text>
@@ -462,17 +350,6 @@ export default function Profile() {
           </Group>
         </Stack>
       </Modal>
-
-      <ConfirmModal
-        opened={deleteConfirmOpen}
-        onClose={() => setDeleteConfirmOpen(false)}
-        onConfirm={handleDeleteAutopayment}
-        title={t('payments.deletePaymentMethod')}
-        message={t('payments.deletePaymentMethodConfirm', { name: autopaymentToDelete?.name || '' })}
-        confirmLabel={t('common.delete')}
-        confirmColor="red"
-        loading={deletingAutopayment}
-      />
     </Stack>
   );
 }
