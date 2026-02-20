@@ -1,15 +1,19 @@
 interface AppConfig {
   APP_NAME: string;
-  TELEGRAM_BOT_NAME: string;
+  TELEGRAM_BOT_NAME?: string;
   TELEGRAM_BOT_AUTH_ENABLE: string;
   TELEGRAM_WEBAPP_AUTH_ENABLE: string;
   TELEGRAM_WEBAPP_AUTO_AUTH_ENABLE: string;
-  TELEGRAM_WEBAPP_PROFILE: string;
-  SUPPORT_LINK: string;
-  SHM_BASE_PATH: string;
+  TELEGRAM_WEBAPP_PROFILE?: string;
+  SUPPORT_LINK?: string;
+  SHM_BASE_PATH?: string;
   OTP_ENABLE: string;
   PASSKEY_ENABLE: string;
-  BITRIX_WIDGET_SCRIPT_URL: string;
+  BITRIX_WIDGET_SCRIPT_URL?: string;
+  PROXY_CATEGORY?: string;
+  PROXY_STORAGE_PREFIX?: string;
+  VPN_CATEGORY?: string;
+  VPN_STORAGE_PREFIX?: string;
 }
 
 declare global {
@@ -33,6 +37,10 @@ function getConfig(): AppConfig {
     OTP_ENABLE: runtimeConfig?.OTP_ENABLE || import.meta.env.VITE_OTP_ENABLE || 'true',
     PASSKEY_ENABLE: runtimeConfig?.PASSKEY_ENABLE || import.meta.env.VITE_PASSKEY_ENABLE || 'true',
     BITRIX_WIDGET_SCRIPT_URL: runtimeConfig?.BITRIX_WIDGET_SCRIPT_URL || import.meta.env.VITE_BITRIX_WIDGET_SCRIPT_URL || '',
+    PROXY_CATEGORY: runtimeConfig?.PROXY_CATEGORY || import.meta.env.VITE_PROXY_CATEGORY || '',
+    PROXY_STORAGE_PREFIX: runtimeConfig?.PROXY_STORAGE_PREFIX || import.meta.env.VITE_PROXY_STORAGE_PREFIX || '',
+    VPN_CATEGORY: runtimeConfig?.VPN_CATEGORY || import.meta.env.VITE_VPN_CATEGORY || '',
+    VPN_STORAGE_PREFIX: runtimeConfig?.VPN_STORAGE_PREFIX || import.meta.env.VITE_VPN_STORAGE_PREFIX || '',
   };
 }
 

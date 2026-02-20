@@ -9,6 +9,7 @@ import QrModal from '../components/QrModal';
 import OrderServiceModal from '../components/OrderServiceModal';
 import ConfirmModal from '../components/ConfirmModal';
 import { useCopyToClipboard } from '../hooks/useCopyToClipboard';
+import { config } from '../config';
 
 interface ForecastItem {
   name: string;
@@ -56,6 +57,12 @@ const statusColors: Record<string, string> = {
 };
 
 function normalizeCategory(category: string): string {
+  if ( config.PROXY_CATEGORY === category ) {
+    return 'proxy';
+  }
+  if ( config.VPN_CATEGORY === category ) {
+    return 'vpn';
+  }
   if (category.match(/remna|remnawave|marzban|marz|mz/i)) {
     return 'proxy';
   }
@@ -250,26 +257,30 @@ function ServiceDetail({ service, onDelete, onChangeTariff }: ServiceDetailProps
   useEffect(() => {
     const fetchData = async () => {
       if (category === 'proxy') {
+        const prefix = config.PROXY_STORAGE_PREFIX ? config.PROXY_STORAGE_PREFIX : 'vpn_mrzb_';
         try {
-          const mzResponse = await api.get(`/storage/manage/vpn_mrzb_${service.user_service_id}?format=json`);
+          const mzResponse = await api.get(`/storage/manage/${prefix}${service.user_service_id}?format=json`);
           const url = mzResponse.data.subscription_url || mzResponse.data.response?.subscriptionUrl;
           if (url) {
             setSubscriptionUrl(url);
           }
           setActiveTab('config');
         } catch {
-          try {
-            const remnaResponse = await api.get(`/storage/manage/vpn_remna_${service.user_service_id}?format=json`);
-            const url = remnaResponse.data.subscription_url || remnaResponse.data.response?.subscriptionUrl;
-            if (url) {
-              setSubscriptionUrl(url);
+          if (!config.PROXY_STORAGE_PREFIX) {
+            try {
+              const remnaResponse = await api.get(`/storage/manage/vpn_remna_${service.user_service_id}?format=json`);
+              const url = remnaResponse.data.subscription_url || remnaResponse.data.response?.subscriptionUrl;
+              if (url) {
+                setSubscriptionUrl(url);
+              }
+            } catch {
             }
-          } catch {
           }
         }
       } else if (category === 'vpn') {
+        const prefix = config.VPN_STORAGE_PREFIX ? config.VPN_STORAGE_PREFIX : 'vpn';
         try {
-          const vpnResponse = await api.get(`/storage/manage/vpn${service.user_service_id}`);
+          const vpnResponse = await api.get(`/storage/manage/${prefix}${service.user_service_id}`);
           const configData = vpnResponse.data;
           if (configData) {
             setStorageData(configData);

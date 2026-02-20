@@ -28,13 +28,6 @@ services:
     environment:
       - SHM_URL=http://api
       - APP_NAME=My Service
-      - TELEGRAM_BOT_NAME=your_bot
-      - TELEGRAM_BOT_AUTH_ENABLE=true
-      - TELEGRAM_WEBAPP_AUTH_ENABLE=true
-      - TELEGRAM_WEBAPP_PROFILE='telegram_bot'
-      - SUPPORT_LINK=https://t.me/your_support_bot
-      - OTP_ENABLE=true
-      - PASSKEY_ENABLE=true
     depends_on:
       - api
 #   mysql:
@@ -57,6 +50,11 @@ services:
 | `RESOLVER` | DNS резолвер для nginx | `127.0.0.11` |
 | `OTP_ENABLE` | Показать настройки OTP | `true` |
 | `PASSKEY_ENABLE` | Показать настройки Passkey | `true` |
+| `BITRIX_WIDGET_SCRIPT_URL` | 	URL виждета Битрих-24 (https://cdn-ru.bitrix24.ru/b********/crm/site_button/loader_****.js) | - |
+| `PROXY_CATEGORY` | Категория прокси чтобы показать ссылку на подписку (vpn-remna) | - |
+| `PROXY_STORAGE_PREFIX` | префикс в хранилище, например 'vpm_remna_' | 'vpm_mrzb_' |
+| `VPN_CATEGORY` | Категория VPN чтобы покаать QR или возможность скачать файл конфигурации (vpn-wg) | - |
+| `VPN_STORAGE_PREFIX` | рефикс в хранилище например 'wg_key_' | 'vpn' |
 
 ### Telegram Widget
 Для работы с авторизацией через Telegram Widget нужно в астройках бота  который указан в `TELGRAM_BOT_NAME` указать домен на котором расположена ваше приложение `shm-client`
