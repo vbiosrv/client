@@ -393,7 +393,21 @@ function AppContent() {
 
 function App() {
   const basePath = config.SHM_BASE_PATH && config.SHM_BASE_PATH !== '/' ? config.SHM_BASE_PATH : undefined;
-  
+
+  useEffect(() => {
+    if (config.BITRIX_WIDGET_SCRIPT_URL) {
+      const script = document.createElement('script');
+      script.async = true;
+      script.src = config.BITRIX_WIDGET_SCRIPT_URL + '?' + (Date.now() / 60000 | 0);
+      const firstScript = document.getElementsByTagName('script')[0];
+      firstScript?.parentNode?.insertBefore(script, firstScript);
+
+      return () => {
+        script.remove();
+      };
+    }
+  }, []);
+
   return (
     <MantineProvider theme={theme} defaultColorScheme="auto">
       <Notifications position="top-right" />
