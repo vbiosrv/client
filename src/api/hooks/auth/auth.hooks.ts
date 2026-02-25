@@ -83,7 +83,7 @@ export const useTelegramWidgetAuth = () => {
     mutationFn: async (userData: TelegramWebAuthCommand.Request) => {
       const partnerId = getPartnerCookie();
 
-      const response = await api.post<{ data: TelegramWebAuthCommand.Response }>(
+      const response = await api.post<TelegramWebAuthCommand.Response>(
         TELEGRAM_ROUTES.WEB_AUTH,
         {
           ...userData,
@@ -92,7 +92,7 @@ export const useTelegramWidgetAuth = () => {
         }
       );
 
-      const sessionId = response.data.data?.session_id || response.data.data?.id;
+      const sessionId = response.data?.session_id;
 
       if (sessionId) {
         setCookie(sessionId);
@@ -122,11 +122,11 @@ export const useTelegramWebAppAuth = () => {
         ...(partnerId && { partner_id: partnerId }),
       });
 
-      const response = await api.get<{ data: TelegramWebappAuthCommand.Response }>(
+      const response = await api.get<TelegramWebappAuthCommand.Response>(
         `${TELEGRAM_ROUTES.WEBAPP_AUTH}?${params.toString()}`
       );
 
-      const sessionId = response.data.data?.session_id || response.data.data?.id;
+      const sessionId = response.data?.session_id;
 
       if (sessionId) {
         setCookie(sessionId);

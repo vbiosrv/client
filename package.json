@@ -1,7 +1,7 @@
 {
   "name": "shm-client",
   "private": true,
-  "version": "1.9.4",
+  "version": "2.0.3",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,7 +11,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@bkeenke/shm-contract": "^1.7.0",
+    "@bkeenke/shm-contract": "^1.8.0",
     "@mantine/core": "^8.3.12",
     "@mantine/dates": "^8.3.12",
     "@mantine/hooks": "^8.3.12",
