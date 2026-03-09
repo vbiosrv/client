@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Card, Text, Stack, Group, Badge, Button, Modal, ActionIcon, Loader, Center, Paper, Title, Tabs, Code, Tooltip, Accordion, Box, Select, NumberInput, Pagination, Table, Alert } from '@mantine/core';
-import { IconQrcode, IconCopy, IconCheck, IconDownload, IconRefresh, IconTrash, IconPlus, IconPlayerStop, IconExchange, IconCreditCard, IconWallet, IconDeviceDesktop, IconInfoCircle } from '@tabler/icons-react';
+import { Card, Text, Stack, Group, Badge, Button, Modal, ActionIcon, Loader, Center, Paper, Title, Tabs, Code, Tooltip, Accordion, Box, Select, NumberInput, Pagination } from '@mantine/core';
+import { IconQrcode, IconCopy, IconCheck, IconDownload, IconRefresh, IconTrash, IconPlus, IconPlayerStop, IconExchange, IconCreditCard, IconWallet } from '@tabler/icons-react';
 import { useDisclosure, useClipboard } from '@mantine/hooks';
 import { useTranslation } from 'react-i18next';
 import { api, servicesApi, userApi } from '../api/client';
@@ -45,15 +45,6 @@ interface UserService {
   parent: number | null;
   settings?: Record<string, unknown>;
   children?: UserService[];
-}
-
-interface HwidDevice {
-  id: string;
-  name: string;
-  firstConnection: string;
-  lastConnection: string;
-  userAgent?: string;
-  ip?: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -106,12 +97,6 @@ function ServiceDetail({ service, onDelete, onChangeTariff }: ServiceDetailProps
   const { t, i18n } = useTranslation();
   const clipboard = useClipboard({ timeout: 1000 });
 
-  // HWID related state
-  const [hwidDevices, setHwidDevices] = useState<HwidDevice[]>([]);
-  const [hwidLoading, setHwidLoading] = useState(false);
-  const [hwidDeviceLimit, setHwidDeviceLimit] = useState<number | null>(null);
-  const [hwidError, setHwidError] = useState<string | null>(null);
-
   const [forecastTotal, setForecastTotal] = useState<number | null>(null);
   const [forecastLoading, setForecastLoading] = useState(false);
   const [paySystems, setPaySystems] = useState<PaySystem[]>([]);
@@ -136,60 +121,6 @@ function ServiceDetail({ service, onDelete, onChangeTariff }: ServiceDetailProps
       URL.revokeObjectURL(url);
     } finally {
       setDownloading(false);
-    }
-  };
-
-  const fetchHwidDevices = async () => {
-    if (!subscriptionUrl) return;
-    
-    setHwidLoading(true);
-    setHwidError(null);
-    
-    try {
-      // Извлекаем UUID из subscriptionUrl
-      // Формат обычно: https://panel.com/sub/uuid или https://panel.com/u/uuid
-      const uuidMatch = subscriptionUrl.match(/\/(?:sub\/|u\/|)([a-f0-9-]{36})/i);
-      if (!uuidMatch) {
-        throw new Error('UUID not found in subscription URL');
-      }
-      
-      const uuid = uuidMatch[1];
-      
-      // Получаем информацию о HWID устройствах
-      const remnaUrl = config.REMNAWAVE_URL || 'https://panel.remnawave.net';
-      const response = await api.get(`/proxy/remna/hwid/devices/${uuid}`);
-      
-      if (response.data && response.data.devices) {
-        setHwidDevices(response.data.devices);
-        setHwidDeviceLimit(response.data.deviceLimit || response.data.hwidDeviceLimit || 0);
-      } else if (response.data && Array.isArray(response.data)) {
-        setHwidDevices(response.data);
-      } else {
-        setHwidDevices([]);
-      }
-    } catch (error: any) {
-      console.error('Failed to fetch HWID devices:', error);
-      if (error.response?.status === 404) {
-        setHwidDevices([]);
-      } else {
-        setHwidError(error.response?.data?.message || error.message || 'Failed to load devices');
-      }
-    } finally {
-      setHwidLoading(false);
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleString(i18n.language === 'ru' ? 'ru-RU' : 'en-US', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch {
-      return dateString;
     }
   };
 
@@ -365,12 +296,6 @@ function ServiceDetail({ service, onDelete, onChangeTariff }: ServiceDetailProps
   }, [service.user_service_id, category]);
 
   useEffect(() => {
-    if (subscriptionUrl && service.status === 'ACTIVE' && category === 'proxy') {
-      fetchHwidDevices();
-    }
-  }, [subscriptionUrl, service.status, category]);
-
-  useEffect(() => {
     const fetchNextService = async () => {
       if (!service.next) {
         setNextServiceInfo(null);
@@ -417,11 +342,6 @@ function ServiceDetail({ service, onDelete, onChangeTariff }: ServiceDetailProps
         <Tabs.List>
           <Tabs.Tab value="info">{t('services.info')}</Tabs.Tab>
           {isVpnOrProxy && service.status === 'ACTIVE' && <Tabs.Tab value="config">{t('services.connection')}</Tabs.Tab>}
-          {isProxy && service.status === 'ACTIVE' && hwidDevices.length > 0 && (
-            <Tabs.Tab value="devices" leftSection={<IconDeviceDesktop size={16} />}>
-              {t('services.devices')} {hwidDevices.length > 0 && `(${hwidDevices.length})`}
-            </Tabs.Tab>
-          )}
         </Tabs.List>
 
         <Tabs.Panel value="info" pt="md">
@@ -517,88 +437,6 @@ function ServiceDetail({ service, onDelete, onChangeTariff }: ServiceDetailProps
                 title={isVpn ? t('services.vpnQrTitle') : t('services.subscriptionQrTitle')}
                 onDownload={isVpn ? downloadConfig : undefined}
               />
-            </Stack>
-          </Tabs.Panel>
-        )}
-
-        {isProxy && service.status === 'ACTIVE' && (
-          <Tabs.Panel value="devices" pt="md">
-            <Stack gap="md">
-              {hwidLoading ? (
-                <Center py="xl">
-                  <Loader size="sm" />
-                  <Text size="sm" ml="xs">{t('common.loading')}</Text>
-                </Center>
-              ) : hwidError ? (
-                <Alert color="red" title={t('common.error')} icon={<IconInfoCircle size={16} />}>
-                  {hwidError}
-                </Alert>
-              ) : hwidDevices.length > 0 ? (
-                <>
-                  {hwidDeviceLimit !== null && (
-                    <Group justify="space-between" mb="xs">
-                      <Text size="sm" c="dimmed">{t('services.deviceLimit')}:</Text>
-                      <Badge color={hwidDevices.length >= hwidDeviceLimit ? 'red' : 'green'} variant="light">
-                        {hwidDevices.length} / {hwidDeviceLimit}
-                      </Badge>
-                    </Group>
-                  )}
-                  
-                  <Table>
-                    <Table.Thead>
-                      <Table.Tr>
-                        <Table.Th>{t('services.deviceName')}</Table.Th>
-                        <Table.Th>{t('services.deviceIp')}</Table.Th>
-                        <Table.Th>{t('services.lastConnection')}</Table.Th>
-                        <Table.Th>{t('services.userAgent')}</Table.Th>
-                      </Table.Tr>
-                    </Table.Thead>
-                    <Table.Tbody>
-                      {hwidDevices.map((device) => (
-                        <Table.Tr key={device.id}>
-                          <Table.Td>
-                            <Group gap="xs">
-                              <IconDeviceDesktop size={16} />
-                              <Text size="sm">{device.name || t('services.unknownDevice')}</Text>
-                            </Group>
-                          </Table.Td>
-                          <Table.Td>
-                            <Code>{device.ip || 'N/A'}</Code>
-                          </Table.Td>
-                          <Table.Td>
-                            <Tooltip label={formatDate(device.lastConnection)}>
-                              <Text size="sm">{formatDate(device.lastConnection)}</Text>
-                            </Tooltip>
-                          </Table.Td>
-                          <Table.Td>
-                            <Tooltip label={device.userAgent || 'N/A'}>
-                              <Text size="sm" truncate="end" maw={200}>
-                                {device.userAgent || 'N/A'}
-                              </Text>
-                            </Tooltip>
-                          </Table.Td>
-                        </Table.Tr>
-                      ))}
-                    </Table.Tbody>
-                  </Table>
-                </>
-              ) : (
-                <Text c="dimmed" ta="center" py="xl">
-                  {t('services.noDevicesConnected')}
-                </Text>
-              )}
-              
-              {!hwidLoading && !hwidError && (
-                <Button 
-                  variant="light" 
-                  leftSection={<IconRefresh size={16} />}
-                  onClick={fetchHwidDevices}
-                  fullWidth
-                  mt="md"
-                >
-                  {t('common.refresh')}
-                </Button>
-              )}
             </Stack>
           </Tabs.Panel>
         )}
