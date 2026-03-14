@@ -148,6 +148,7 @@
     "title": "Мои услуги",
     "orderService": "Заказать услугу",
     "noServices": "У вас пока нет активных услуг",
+    "noServicesDescription": "У вас пока нет активных услуг. Закажите новую услугу, чтобы начать пользоваться сервисом.",
     "serviceDetails": "Детали услуги",
     "info": "Информация",
     "connection": "Подключение",
@@ -194,12 +195,13 @@
     "configDownloaded": "Конфигурация скачана",
     "configDownloadError": "Ошибка при скачивании",
     "fetchError": "Не удалось загрузить услуги",
-    "noServicesDescription": "У вас пока нет активных услуг. Закажите новую услугу, чтобы начать пользоваться сервисом.",
     "active": "активных",
     "linkCopied": "Ссылка скопирована для {{app}}",
     "appOpenError": "Не удалось открыть приложение",
-    "configDownloaded": "Конфигурация скачана",
-    "configDownloadError": "Ошибка при скачивании"
+    "appNotInstalled": "Приложение не установлено",
+    "downloadAppFirst": "Сначала скачайте {{app}}",
+    "download": "Скачать",
+    "clickToDownload": "Нажмите чтобы скачать"
   },
   "categories": {
     "vpn": "VPN",
