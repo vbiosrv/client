@@ -72,6 +72,8 @@ interface AppLink {
   platform: 'android' | 'ios' | 'windows' | 'macos' | 'linux' | 'web' | 'other';
   description?: string;
   action?: 'open' | 'copy';
+  packageName?: string; // для Android
+  appStoreId?: string;  // для iOS
 }
 
 const statusColors: Record<string, string> = {
@@ -136,6 +138,33 @@ const getDownloadUrl = (appName: string): string => {
   return downloadUrls[appName] || 'https://google.com/search?q=' + encodeURIComponent(appName + ' vpn client');
 };
 
+// Функция для проверки, установлено ли приложение на устройстве
+const checkAppInstalled = async (appLink: AppLink): Promise<boolean> => {
+  return new Promise((resolve) => {
+    // Для мобильных устройств пробуем открыть deep link и проверяем реакцию
+    const timeout = setTimeout(() => {
+      window.removeEventListener('blur', handleBlur);
+      resolve(false); // Приложение не установлено
+    }, 500);
+
+    const handleBlur = () => {
+      clearTimeout(timeout);
+      window.removeEventListener('blur', handleBlur);
+      resolve(true); // Приложение установлено (страница потеряла фокус)
+    };
+
+    window.addEventListener('blur', handleBlur);
+    
+    try {
+      window.location.href = appLink.url;
+    } catch (error) {
+      clearTimeout(timeout);
+      window.removeEventListener('blur', handleBlur);
+      resolve(false);
+    }
+  });
+};
+
 const getAppLinks = (type: 'vpn' | 'proxy', subscriptionUrl?: string): AppLink[] => {
   if (type === 'vpn') {
     return [
@@ -145,7 +174,8 @@ const getAppLinks = (type: 'vpn' | 'proxy', subscriptionUrl?: string): AppLink[]
         url: 'https://play.google.com/store/apps/details?id=global.happ.happ',
         platform: 'android',
         description: 'Скачать Happ для Android',
-        action: 'open'
+        action: 'open',
+        packageName: 'global.happ.happ'
       },
       {
         name: 'v2rayTun',
@@ -153,7 +183,8 @@ const getAppLinks = (type: 'vpn' | 'proxy', subscriptionUrl?: string): AppLink[]
         url: 'https://play.google.com/store/apps/details?id=ru.itivgroup.v2raytun',
         platform: 'android',
         description: 'Скачать v2rayTun для Android',
-        action: 'open'
+        action: 'open',
+        packageName: 'ru.itivgroup.v2raytun'
       },
       {
         name: 'Streisand',
@@ -177,7 +208,8 @@ const getAppLinks = (type: 'vpn' | 'proxy', subscriptionUrl?: string): AppLink[]
         url: 'https://apps.apple.com/app/v2box-v2ray-client/id6446012536',
         platform: 'ios',
         description: 'Скачать V2Box для iOS',
-        action: 'open'
+        action: 'open',
+        appStoreId: '6446012536'
       },
       {
         name: 'Shadowrocket',
@@ -185,7 +217,8 @@ const getAppLinks = (type: 'vpn' | 'proxy', subscriptionUrl?: string): AppLink[]
         url: 'https://apps.apple.com/app/shadowrocket/id932747118',
         platform: 'ios',
         description: 'Скачать Shadowrocket для iOS',
-        action: 'open'
+        action: 'open',
+        appStoreId: '932747118'
       },
       {
         name: 'Nekoray',
@@ -216,7 +249,8 @@ const getAppLinks = (type: 'vpn' | 'proxy', subscriptionUrl?: string): AppLink[]
         url: `happ://install-config?url=${encodedUrl}`,
         platform: 'android',
         description: 'Добавить подписку в Happ',
-        action: 'open'
+        action: 'open',
+        packageName: 'global.happ.happ'
       },
       {
         name: 'v2rayTun',
@@ -224,7 +258,8 @@ const getAppLinks = (type: 'vpn' | 'proxy', subscriptionUrl?: string): AppLink[]
         url: `v2raytun://import?url=${encodedUrl}`,
         platform: 'android',
         description: 'Добавить подписку в v2rayTun',
-        action: 'open'
+        action: 'open',
+        packageName: 'ru.itivgroup.v2raytun'
       },
       {
         name: 'Streisand',
@@ -248,7 +283,8 @@ const getAppLinks = (type: 'vpn' | 'proxy', subscriptionUrl?: string): AppLink[]
         url: `v2box://import?url=${encodedUrl}`,
         platform: 'ios',
         description: 'Добавить подписку в V2Box',
-        action: 'open'
+        action: 'open',
+        appStoreId: '6446012536'
       },
       {
         name: 'Shadowrocket',
@@ -256,7 +292,8 @@ const getAppLinks = (type: 'vpn' | 'proxy', subscriptionUrl?: string): AppLink[]
         url: `shadowrocket://add/${encodedUrl}`,
         platform: 'ios',
         description: 'Добавить подписку в Shadowrocket',
-        action: 'open'
+        action: 'open',
+        appStoreId: '932747118'
       },
       {
         name: 'Sing-box (macOS)',
@@ -369,33 +406,26 @@ function ServiceDetail({ service, onDelete, onChangeTariff }: ServiceDetailProps
     }
 
     try {
-      // Пробуем открыть deep link
-      window.location.href = appLink.url;
+      // Проверяем, установлено ли приложение
+      const isInstalled = await checkAppInstalled(appLink);
       
-      // Если приложение не установлено, показываем уведомление через небольшую задержку
-      setTimeout(() => {
+      if (!isInstalled) {
+        // Приложение не установлено - показываем уведомление с предложением скачать
         const downloadUrl = getDownloadUrl(appLink.name);
         
-        // Показываем уведомление с просьбой скачать приложение
         notifications.show({
+          id: `app-not-installed-${appLink.name}`,
           title: t('services.appNotInstalled'),
           message: t('services.downloadAppFirst', { app: appLink.name }),
           color: 'yellow',
           autoClose: 10000,
-        });
-        
-        // Также показываем дополнительное уведомление с кнопкой скачивания
-        notifications.show({
-          id: `download-${appLink.name}`,
-          title: t('services.download') + ' ' + appLink.name,
-          message: t('services.clickToDownload'),
-          color: 'blue',
-          autoClose: 15000,
           onClick: () => {
             window.open(downloadUrl, '_blank');
           }
         });
-      }, 1000);
+      }
+      // Если приложение установлено, deep link уже сработал
+      
     } catch (error) {
       notifications.show({
         title: t('common.error'),
