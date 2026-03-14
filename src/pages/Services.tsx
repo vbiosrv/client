@@ -111,7 +111,7 @@ const getPlatformIcon = (platform: string) => {
     case 'windows':
       return <IconBrandWindows size={18} />;
     case 'linux':
-      return <IconBrandLinux size={18} />;
+      return <IconDeviceLaptop size={18} />;
     case 'web':
       return <IconBrandChrome size={18} />;
     default:
