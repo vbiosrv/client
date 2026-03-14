@@ -158,6 +158,7 @@
     "includedServices": "Включённые услуги",
     "subscriptionLink": "Ссылка подписки",
     "qrCode": "QR-код",
+    "addToAPP": "Добавить в приложение",
     "downloadConfig": "Скачать конфиг",
     "downloadQr": "Скачать QR",
     "qrTooLong": "Конфигурация слишком большая",
