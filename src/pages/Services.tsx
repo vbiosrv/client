@@ -16,8 +16,9 @@ import {
   IconBrandAndroid,
   IconBrandApple,
   IconBrandWindows,
-  IconBrandChrome,
-  IconBrandLinux
+  IconWorld,
+  IconDeviceLaptop,
+  IconDeviceDesktop
 } from '@tabler/icons-react';
 import { useDisclosure, useClipboard } from '@mantine/hooks';
 import { useTranslation } from 'react-i18next';
@@ -112,8 +113,10 @@ const getPlatformIcon = (platform: string) => {
       return <IconBrandWindows size={18} />;
     case 'linux':
       return <IconDeviceLaptop size={18} />;
+    case 'macos':
+      return <IconBrandApple size={18} />;
     case 'web':
-      return <IconBrandChrome size={18} />;
+      return <IconWorld size={18} />;
     default:
       return <IconDeviceMobile size={18} />;
   }
@@ -500,7 +503,6 @@ function ServiceDetail({ service, onDelete, onChangeTariff }: ServiceDetailProps
       if (category === 'proxy') {
         const prefix = config.PROXY_STORAGE_PREFIX ? config.PROXY_STORAGE_PREFIX : 'vpn_mrzb_';
         
-        // Try Marzban format first
         try {
           const mzResponse = await api.get(`/storage/manage/${prefix}${service.user_service_id}?format=json`);
           const url = mzResponse.data.subscription_url || mzResponse.data.response?.subscriptionUrl;
@@ -509,7 +511,6 @@ function ServiceDetail({ service, onDelete, onChangeTariff }: ServiceDetailProps
             setActiveTab('config');
           }
         } catch (error) {
-          // Try Remnawave format if Marzban fails
           if (!config.PROXY_STORAGE_PREFIX) {
             try {
               const remnaResponse = await api.get(`/storage/manage/vpn_remna_${service.user_service_id}?format=json`);
@@ -580,7 +581,6 @@ function ServiceDetail({ service, onDelete, onChangeTariff }: ServiceDetailProps
   const appLinks = isProxy && subscriptionUrl ? getAppLinks('proxy', subscriptionUrl) : 
                    isVpn ? getAppLinks('vpn') : [];
 
-  // Группируем приложения по платформам для лучшей организации
   const groupedApps = appLinks.reduce((acc, app) => {
     if (!acc[app.platform]) {
       acc[app.platform] = [];
@@ -1101,7 +1101,6 @@ export default function Services() {
         }
       });
 
-      // Сортируем корневые услуги по дате создания (новые сверху)
       rootServices.sort((a, b) => 
         new Date(b.created).getTime() - new Date(a.created).getTime()
       );
@@ -1194,7 +1193,6 @@ export default function Services() {
     return acc;
   }, {} as Record<string, UserService[]>);
 
-  // Сортируем категории (VPN и Proxy в начале)
   const sortedCategories = Object.keys(groupedServices).sort((a, b) => {
     if (a === 'vpn') return -1;
     if (b === 'vpn') return 1;
@@ -1270,7 +1268,6 @@ export default function Services() {
             const totalPages = Math.ceil(categoryServices.length / perPage);
             const paginatedServices = categoryServices.slice((page - 1) * perPage, page * perPage);
             
-            // Считаем активные услуги в категории
             const activeCount = categoryServices.filter(s => 
               s.status === 'ACTIVE' || s.children?.some(c => c.status === 'ACTIVE')
             ).length;
