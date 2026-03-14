@@ -121,154 +121,61 @@ const getPlatformIcon = (platform: string) => {
   }
 };
 
-const getAppLinks = (type: 'vpn' | 'proxy', subscriptionUrl?: string): AppLink[] => {
-  if (type === 'vpn') {
-    return [
-      {
-        name: 'v2rayTun',
-        icon: getPlatformIcon('android'),
-        url: 'https://play.google.com/store/apps/details?id=ru.itivgroup.v2raytun',
-        platform: 'android',
-        description: 'VPN клиент для Android',
-        action: 'open'
-      },
-      {
-        name: 'Happ',
-        icon: getPlatformIcon('android'),
-        url: 'https://play.google.com/store/apps/details?id=global.happ.happ',
-        platform: 'android',
-        description: 'Универсальный VPN клиент',
-        action: 'open'
-      },
-      {
-        name: 'Streisand',
-        icon: getPlatformIcon('android'),
-        url: 'https://github.com/StreisandEffect/streisand/releases',
-        platform: 'android',
-        description: 'Open Source клиент',
-        action: 'open'
-      },
-      {
-        name: 'V2Box',
-        icon: getPlatformIcon('ios'),
-        url: 'https://apps.apple.com/app/v2box-v2ray-client/id6446012536',
-        platform: 'ios',
-        description: 'VPN клиент для iOS',
-        action: 'open'
-      },
-      {
-        name: 'Nekoray',
-        icon: getPlatformIcon('windows'),
-        url: 'https://github.com/MatsuriDayo/nekoray/releases',
-        platform: 'windows',
-        description: 'Клиент для Windows',
-        action: 'open'
-      },
-      {
-        name: 'Nekobox',
-        icon: getPlatformIcon('android'),
-        url: 'https://github.com/MatsuriDayo/NekoBoxForAndroid/releases',
-        platform: 'android',
-        description: 'Nekobox для Android',
-        action: 'open'
-      },
-      {
-        name: 'Sing-box',
-        icon: getPlatformIcon('linux'),
-        url: 'https://github.com/SagerNet/sing-box/releases',
-        platform: 'linux',
-        description: 'Клиент для Linux',
-        action: 'open'
-      }
-    ];
+const handleAppAction = async (appLink: AppLink) => {
+  if (appLink.action === 'copy') {
+    clipboard.copy(appLink.url);
+    notifications.show({
+      title: t('common.success'),
+      message: t('services.linkCopied', { app: appLink.name }),
+      color: 'green',
+    });
+    return;
   }
-  
-  if (type === 'proxy' && subscriptionUrl) {
-    const encodedUrl = encodeURIComponent(subscriptionUrl);
-    return [
-      {
-        name: 'Happ',
-        icon: getPlatformIcon('android'),
-        url: `happ://install-config?url=${encodedUrl}`,
-        platform: 'android',
-        description: 'Открыть подписку в Happ',
-        action: 'open'
-      },
-      {
-        name: 'v2rayTun',
-        icon: getPlatformIcon('android'),
-        url: `v2raytun://install-config?url=${encodedUrl}`,
-        platform: 'android',
-        description: 'Открыть подписку в v2rayTun',
-        action: 'open'
-      },
-      {
-        name: 'Streisand',
-        icon: getPlatformIcon('android'),
-        url: `streisand://install-config?url=${encodedUrl}`,
-        platform: 'android',
-        description: 'Открыть подписку в Streisand',
-        action: 'open'
-      },
-      {
-        name: 'Nekobox',
-        icon: getPlatformIcon('android'),
-        url: `nekobox://install-config?url=${encodedUrl}`,
-        platform: 'android',
-        description: 'Открыть подписку в Nekobox',
-        action: 'open'
-      },
-      {
-        name: 'V2Box',
-        icon: getPlatformIcon('ios'),
-        url: `v2box://install-config?url=${encodedUrl}`,
-        platform: 'ios',
-        description: 'Открыть подписку в V2Box',
-        action: 'open'
-      },
-      {
-        name: 'Shadowrocket',
-        icon: getPlatformIcon('ios'),
-        url: `shadowrocket://install-config?url=${encodedUrl}`,
-        platform: 'ios',
-        description: 'Открыть подписку в Shadowrocket',
-        action: 'open'
-      },
-      {
-        name: 'Sing-box',
-        icon: getPlatformIcon('linux'),
-        url: subscriptionUrl,
-        platform: 'linux',
-        description: 'Скопировать ссылку для Sing-box',
-        action: 'copy'
-      },
-      {
-        name: 'Nekoray',
-        icon: getPlatformIcon('windows'),
-        url: subscriptionUrl,
-        platform: 'windows',
-        description: 'Скопировать ссылку для Nekoray',
-        action: 'copy'
-      },
-      {
-        name: 'Копировать ссылку',
-        icon: <IconCopy size={18} />,
-        url: subscriptionUrl,
-        platform: 'other',
-        description: 'Скопировать subscription URL',
-        action: 'copy'
-      }
-    ];
+
+  try {
+    // Пробуем открыть deep link
+    window.location.href = appLink.url;
+    
+    // Если приложение не установлено, показываем уведомление
+    setTimeout(() => {
+      notifications.show({
+        title: t('services.appNotInstalled'),
+        message: t('services.downloadAppFirst', { app: appLink.name }),
+        color: 'yellow',
+        action: (
+          <Button 
+            size="xs" 
+            variant="light" 
+            onClick={() => window.open(getDownloadUrl(appLink.name), '_blank')}
+          >
+            {t('services.download')}
+          </Button>
+        ),
+      });
+    }, 500);
+  } catch (error) {
+    notifications.show({
+      title: t('common.error'),
+      message: t('services.appOpenError'),
+      color: 'red',
+    });
   }
-  
-  return [];
 };
 
-interface ServiceDetailProps {
-  service: UserService;
-  onDelete?: () => void;
-  onChangeTariff?: (service: UserService) => void;
-}
+const getDownloadUrl = (appName: string): string => {
+  const downloadUrls: Record<string, string> = {
+    'Happ': 'https://play.google.com/store/apps/details?id=global.happ.happ',
+    'v2rayTun': 'https://play.google.com/store/apps/details?id=ru.itivgroup.v2raytun',
+    'Streisand': 'https://github.com/StreisandEffect/streisand/releases',
+    'Nekobox': 'https://github.com/MatsuriDayo/NekoBoxForAndroid/releases',
+    'V2Box': 'https://apps.apple.com/app/v2box-v2ray-client/id6446012536',
+    'Shadowrocket': 'https://apps.apple.com/app/shadowrocket/id932747118',
+    'Nekoray': 'https://github.com/MatsuriDayo/nekoray/releases',
+    'Sing-box': 'https://github.com/SagerNet/sing-box/releases',
+  };
+  
+  return downloadUrls[appName] || 'https://google.com/search?q=' + encodeURIComponent(appName);
+};
 
 function ServiceDetail({ service, onDelete, onChangeTariff }: ServiceDetailProps) {
   const [storageData, setStorageData] = useState<string | null>(null);
