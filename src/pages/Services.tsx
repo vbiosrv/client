@@ -17,8 +17,7 @@ import {
   IconBrandApple,
   IconBrandWindows,
   IconWorld,
-  IconDeviceLaptop,
-  IconDeviceDesktop
+  IconDeviceLaptop
 } from '@tabler/icons-react';
 import { useDisclosure, useClipboard } from '@mantine/hooks';
 import { useTranslation } from 'react-i18next';
