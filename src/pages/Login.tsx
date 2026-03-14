@@ -1,6 +1,17 @@
+// Login.tsx
 import { useEffect, useRef, useState } from 'react';
-import { Card, Text, Stack, Button, TextInput, PasswordInput, Divider, Title, Center, Modal, Group, Loader } from '@mantine/core';
-import { IconLogin, IconUserPlus, IconFingerprint, IconShieldLock, IconBrandTelegram, IconMailForward, IconLock } from '@tabler/icons-react';
+import { 
+  Card, Text, Stack, Button, TextInput, PasswordInput, 
+  Divider, Title, Center, Modal, Group, Loader, Paper,
+  Alert, ThemeIcon, Progress, Tooltip, Badge, Transition,
+  Box, Container, Image, Anchor
+} from '@mantine/core';
+import { 
+  IconLogin, IconUserPlus, IconFingerprint, IconShieldLock,
+  IconBrandTelegram, IconMailForward, IconLock, IconAlertCircle,
+  IconCheck, IconArrowRight, IconKey, IconBrandGoogle,
+  IconShieldCheck, IconDeviceMobile, IconMoodSmile
+} from '@tabler/icons-react';
 import { notifications } from '@mantine/notifications';
 import { useTranslation } from 'react-i18next';
 import { auth, passkeyApi, userApi } from '../api/client';
@@ -11,6 +22,7 @@ import { config } from '../config';
 import { useTelegramWebApp } from '../hooks/useTelegramWebApp';
 import LanguageSwitcher from '../components/LanguageSwitcher';
 import { hasTelegramWebAppAutoAuth, hasTelegramWidget, hasTelegramWebAppAuth } from '../constants/webapp';
+import classes from './Login.module.css';
 
 function base64UrlToArrayBuffer(base64url: string): ArrayBuffer {
   const base64 = base64url.replace(/-/g, '+').replace(/_/g, '/');
@@ -46,6 +58,7 @@ export default function Login() {
   const [resetToken, setResetToken] = useState<string | null>(null);
   const [newPasswordData, setNewPasswordData] = useState({ password: '', confirmPassword: '' });
   const [verifyingToken, setVerifyingToken] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState(0);
   const { setUser, setTelegramPhoto } = useStore();
   const { t } = useTranslation();
   const isWebAuthnSupported = !!window.PublicKeyCredential;
@@ -53,6 +66,30 @@ export default function Login() {
   const autoAuthTriggeredRef = useRef(false);
   const autoAuthAttemptKey = 'tg_webapp_auto_auth_attempted';
   const autoAuthCooldownMs = 60 * 1000;
+  const loginInputRef = useRef<HTMLInputElement>(null);
+  const passwordInputRef = useRef<HTMLInputElement>(null);
+
+  // Проверка сложности пароля
+  useEffect(() => {
+    if (mode === 'register' && formData.password) {
+      let strength = 0;
+      if (formData.password.length >= 8) strength += 25;
+      if (formData.password.match(/[a-z]/)) strength += 25;
+      if (formData.password.match(/[A-Z]/)) strength += 25;
+      if (formData.password.match(/[0-9]/)) strength += 15;
+      if (formData.password.match(/[^a-zA-Z0-9]/)) strength += 10;
+      setPasswordStrength(Math.min(100, strength));
+    } else {
+      setPasswordStrength(0);
+    }
+  }, [formData.password, mode]);
+
+  // Автофокус на поле логина
+  useEffect(() => {
+    if (!showLoginForm && !hasTelegramWebAppAuth) {
+      setTimeout(() => loginInputRef.current?.focus(), 100);
+    }
+  }, [showLoginForm]);
 
   useEffect(() => {
     if (!hasTelegramWebAppAutoAuth || autoAuthTriggeredRef.current || !telegramWebApp?.initData) {
@@ -87,12 +124,22 @@ export default function Login() {
         if (msg === 'Successful') {
           setShowNewPasswordForm(true);
         } else {
-          notifications.show({ title: t('common.error'), message: t('auth.invalidResetToken'), color: 'red' });
+          notifications.show({ 
+            title: t('common.error'), 
+            message: t('auth.invalidResetToken'), 
+            color: 'red',
+            icon: <IconAlertCircle size={16} />,
+          });
           removeResetTokenCookie();
           setResetToken(null);
         }
       } catch {
-        notifications.show({ title: t('common.error'), message: t('auth.invalidResetToken'), color: 'red' });
+        notifications.show({ 
+          title: t('common.error'), 
+          message: t('auth.invalidResetToken'), 
+          color: 'red',
+          icon: <IconAlertCircle size={16} />,
+        });
         removeResetTokenCookie();
         setResetToken(null);
       } finally {
@@ -105,17 +152,42 @@ export default function Login() {
 
   const handleNewPasswordSubmit = async () => {
     if (!newPasswordData.password || !newPasswordData.confirmPassword) {
-      notifications.show({ title: t('common.error'), message: t('auth.fillAllFields'), color: 'red' });
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('auth.fillAllFields'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
       return;
     }
 
     if (newPasswordData.password !== newPasswordData.confirmPassword) {
-      notifications.show({ title: t('common.error'), message: t('auth.passwordsMismatch'), color: 'red' });
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('auth.passwordsMismatch'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
+      return;
+    }
+
+    if (newPasswordData.password.length < 6) {
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('auth.passwordTooShort'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
       return;
     }
 
     if (!resetToken) {
-      notifications.show({ title: t('common.error'), message: t('auth.invalidResetToken'), color: 'red' });
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('auth.invalidResetToken'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
       return;
     }
 
@@ -125,16 +197,31 @@ export default function Login() {
       const msg = response.data?.data?.[0]?.msg || response.data?.data?.msg;
 
       if (msg === 'Password reset successful') {
-        notifications.show({ title: t('common.success'), message: t('auth.passwordResetSuccess'), color: 'green' });
+        notifications.show({ 
+          title: t('common.success'), 
+          message: t('auth.passwordResetSuccess'), 
+          color: 'green',
+          icon: <IconCheck size={16} />,
+        });
+        setShowNewPasswordForm(false);
       } else {
-        notifications.show({ title: t('common.error'), message: t('auth.invalidResetToken'), color: 'red' });
+        notifications.show({ 
+          title: t('common.error'), 
+          message: t('auth.invalidResetToken'), 
+          color: 'red',
+          icon: <IconAlertCircle size={16} />,
+        });
       }
     } catch {
-      notifications.show({ title: t('common.error'), message: t('auth.invalidResetToken'), color: 'red' });
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('auth.invalidResetToken'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
     } finally {
       removeResetTokenCookie();
       setResetToken(null);
-      setShowNewPasswordForm(false);
       setNewPasswordData({ password: '', confirmPassword: '' });
       setResetLoading(false);
     }
@@ -142,7 +229,12 @@ export default function Login() {
 
   const handleLogin = async (otpTokenParam?: string) => {
     if (!formData.login || !formData.password) {
-      notifications.show({ title: t('common.error'), message: t('auth.fillAllFields'), color: 'red' });
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('auth.fillAllFields'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
       return;
     }
 
@@ -162,13 +254,30 @@ export default function Login() {
       setUser(userData);
       setShowOtp(false);
       setOtpToken('');
-      notifications.show({ title: t('common.success'), message: t('auth.loginSuccess'), color: 'green' });
+      
+      notifications.show({ 
+        title: t('common.welcome'), 
+        message: t('auth.loginSuccess', { name: userData.login || userData.full_name || '' }), 
+        color: 'green',
+        icon: <IconMoodSmile size={16} />,
+        autoClose: 5000,
+      });
     } catch (error: unknown) {
       const axiosError = error as { response?: { status?: number; data?: { error?: string } } };
       if (axiosError.response?.status === 403 && axiosError.response?.data?.error?.includes('Password authentication is disabled')) {
-        notifications.show({ title: t('common.error'), message: t('auth.passwordAuthDisabled'), color: 'red' });
+        notifications.show({ 
+          title: t('common.error'), 
+          message: t('auth.passwordAuthDisabled'), 
+          color: 'red',
+          icon: <IconAlertCircle size={16} />,
+        });
       } else {
-        notifications.show({ title: t('common.error'), message: t('auth.loginError'), color: 'red' });
+        notifications.show({ 
+          title: t('common.error'), 
+          message: t('auth.loginError'), 
+          color: 'red',
+          icon: <IconAlertCircle size={16} />,
+        });
       }
       setOtpToken('');
     } finally {
@@ -177,8 +286,13 @@ export default function Login() {
   };
 
   const handleOtpSubmit = async () => {
-    if (!otpToken) {
-      notifications.show({ title: t('common.error'), message: t('otp.enterValidCode'), color: 'red' });
+    if (!otpToken || otpToken.length < 6) {
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('otp.enterValidCode'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
       return;
     }
     await handleLogin(otpToken);
@@ -186,22 +300,55 @@ export default function Login() {
 
   const handleRegister = async () => {
     if (!formData.login || !formData.password) {
-      notifications.show({ title: t('common.error'), message: t('auth.fillAllFields'), color: 'red' });
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('auth.fillAllFields'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
       return;
     }
     if (formData.password !== formData.confirmPassword) {
-      notifications.show({ title: t('common.error'), message: t('auth.passwordsMismatch'), color: 'red' });
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('auth.passwordsMismatch'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
+      return;
+    }
+    if (formData.password.length < 6) {
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('auth.passwordTooShort'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
       return;
     }
 
     setLoading(true);
     try {
       await auth.register(formData.login, formData.password);
-      notifications.show({ title: t('common.success'), message: t('auth.registerSuccess'), color: 'green' });
+      notifications.show({ 
+        title: t('common.success'), 
+        message: t('auth.registerSuccess'), 
+        color: 'green',
+        icon: <IconCheck size={16} />,
+      });
       setMode('login');
-      setFormData({ ...formData, confirmPassword: '' });
-    } catch {
-      notifications.show({ title: t('common.error'), message: t('auth.registerError'), color: 'red' });
+      setFormData({ ...formData, password: '', confirmPassword: '' });
+      
+      // Автофокус на поле логина после регистрации
+      setTimeout(() => loginInputRef.current?.focus(), 100);
+    } catch (error: any) {
+      const errorMsg = error.response?.data?.error || error.response?.data?.msg || t('auth.registerError');
+      notifications.show({ 
+        title: t('common.error'), 
+        message: errorMsg, 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
     } finally {
       setLoading(false);
     }
@@ -229,9 +376,19 @@ export default function Login() {
         setTelegramPhoto(telegramUser.photo_url);
       }
 
-      notifications.show({ title: t('common.success'), message: t('auth.telegramAuth'), color: 'green' });
+      notifications.show({ 
+        title: t('common.success'), 
+        message: t('auth.telegramAuth'), 
+        color: 'green',
+        icon: <IconBrandTelegram size={16} />,
+      });
     } catch {
-      notifications.show({ title: t('common.error'), message: t('auth.telegramAuthError'), color: 'red' });
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('auth.telegramAuthError'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
     } finally {
       setLoading(false);
     }
@@ -239,7 +396,12 @@ export default function Login() {
 
   const handleTelegramWebAppAuth = async () => {
     if (!telegramWebApp?.initData) {
-      notifications.show({ title: t('common.error'), message: t('auth.telegramAuthError'), color: 'red' });
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('auth.telegramAuthError'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
       setShowLoginForm(true);
       return;
     }
@@ -250,7 +412,12 @@ export default function Login() {
       const authResponse = await auth.telegramWebAppAuth(telegramWebApp.initData, profile);
       const sessionId = authResponse.data?.session_id || authResponse.data?.id;
       if (!sessionId) {
-        notifications.show({ title: t('common.error'), message: t('auth.telegramAuthError'), color: 'red' });
+        notifications.show({ 
+          title: t('common.error'), 
+          message: t('auth.telegramAuthError'), 
+          color: 'red',
+          icon: <IconAlertCircle size={16} />,
+        });
         setShowLoginForm(true);
         return;
       }
@@ -264,9 +431,19 @@ export default function Login() {
         setTelegramPhoto(telegramWebApp.initDataUnsafe.user.photo_url);
       }
 
-      notifications.show({ title: t('common.success'), message: t('auth.telegramAuth'), color: 'green' });
+      notifications.show({ 
+        title: t('common.success'), 
+        message: t('auth.telegramAuth'), 
+        color: 'green',
+        icon: <IconBrandTelegram size={16} />,
+      });
     } catch {
-      notifications.show({ title: t('common.error'), message: t('auth.telegramAuthError'), color: 'red' });
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('auth.telegramAuthError'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
       setShowLoginForm(true);
     } finally {
       setLoading(false);
@@ -275,7 +452,12 @@ export default function Login() {
 
   const handleResetPassword = async () => {
     if (!formData.login_or_email) {
-      notifications.show({ title: t('common.error'), message: t('auth.resetEnterLogin'), color: 'red' });
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('auth.resetEnterLogin'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
       return;
     }
 
@@ -284,7 +466,12 @@ export default function Login() {
       const loginResponse = await userApi.resetPassword({ login: formData.login_or_email });
       const loginMsg = loginResponse.data?.data?.[0]?.msg || loginResponse.data?.data?.msg;
       if (loginMsg === 'Successful') {
-        notifications.show({ title: t('common.success'), message: t('auth.resetSuccess'), color: 'green' });
+        notifications.show({ 
+          title: t('common.success'), 
+          message: t('auth.resetSuccess'), 
+          color: 'green',
+          icon: <IconMailForward size={16} />,
+        });
         setShowResetPassword(false);
         setResetLoading(false);
         return;
@@ -293,22 +480,42 @@ export default function Login() {
       const emailResponse = await userApi.resetPassword({ email: formData.login_or_email });
       const emailMsg = emailResponse.data?.data?.[0]?.msg || emailResponse.data?.data?.msg;
       if (emailMsg === 'Successful') {
-        notifications.show({ title: t('common.success'), message: t('auth.resetSuccess'), color: 'green' });
+        notifications.show({ 
+          title: t('common.success'), 
+          message: t('auth.resetSuccess'), 
+          color: 'green',
+          icon: <IconMailForward size={16} />,
+        });
         setShowResetPassword(false);
         setResetLoading(false);
         return;
       }
 
-      notifications.show({ title: t('common.error'), message: t('auth.resetNotFound'), color: 'red' });
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('auth.resetNotFound'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
     } catch {
-      notifications.show({ title: t('common.error'), message: t('auth.resetNotFound'), color: 'red' });
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('auth.resetNotFound'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
     }
     setResetLoading(false);
   };
 
   const handlePasskeyAuth = async () => {
     if (!isWebAuthnSupported) {
-      notifications.show({ title: t('common.error'), message: t('passkey.notSupported'), color: 'red' });
+      notifications.show({ 
+        title: t('common.error'), 
+        message: t('passkey.notSupported'), 
+        color: 'red',
+        icon: <IconAlertCircle size={16} />,
+      });
       return;
     }
 
@@ -353,163 +560,314 @@ export default function Login() {
       const userData = Array.isArray(responseData) ? responseData[0] : responseData;
       setUser(userData);
 
-      notifications.show({ title: t('common.success'), message: t('auth.loginSuccess'), color: 'green' });
-    } catch {
-      notifications.show({ title: t('common.error'), message: t('passkey.authError'), color: 'red' });
+      notifications.show({ 
+        title: t('common.success'), 
+        message: t('auth.loginSuccess'), 
+        color: 'green',
+        icon: <IconFingerprint size={16} />,
+      });
+    } catch (error: any) {
+      if (error.name === 'NotAllowedError') {
+        notifications.show({ 
+          title: t('common.info'), 
+          message: t('passkey.cancelled'), 
+          color: 'blue',
+        });
+      } else {
+        notifications.show({ 
+          title: t('common.error'), 
+          message: t('passkey.authError'), 
+          color: 'red',
+          icon: <IconAlertCircle size={16} />,
+        });
+      }
     } finally {
       setPasskeyLoading(false);
     }
   };
 
+  const getPasswordStrengthColor = () => {
+    if (passwordStrength < 40) return 'red';
+    if (passwordStrength < 70) return 'yellow';
+    return 'green';
+  };
+
+  const getPasswordStrengthText = () => {
+    if (passwordStrength < 40) return t('auth.passwordWeak');
+    if (passwordStrength < 70) return t('auth.passwordMedium');
+    return t('auth.passwordStrong');
+  };
+
   return (
-    <Center h="80vh" style={{ position: 'relative' }}>
-      <Card withBorder radius="md" p="xl" w={400}>
-        <Stack gap="lg">
-          <Group justify="space-between" align="center">
-            <div style={{ flex: 1 }} />
-            <Title order={2} ta="center" style={{ flex: 'auto' }}>{config.APP_NAME}</Title>
-            <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
-              <LanguageSwitcher />
-            </div>
-          </Group>
-          <Text size="sm" c="dimmed" ta="center">
-              {mode === 'login' ? t('auth.loginTitle') : t('auth.registerTitle')}
-          </Text>
+    <Box className={classes.wrapper}>
+      <Container size={420} py={40}>
+        <Transition mounted={true} transition="fade" duration={400}>
+          {(styles) => (
+            <Card 
+              withBorder 
+              radius="lg" 
+              p="xl" 
+              className={classes.card}
+              style={styles}
+              shadow="md"
+            >
+              <Stack gap="lg">
+                <Group justify="space-between" align="center" wrap="nowrap">
+                  <ThemeIcon size={40} radius="md" variant="gradient" gradient={{ from: 'blue', to: 'cyan' }}>
+                    <IconShieldLock size={24} />
+                  </ThemeIcon>
+                  <Title order={2} ta="center" className={classes.title}>
+                    {config.APP_NAME}
+                  </Title>
+                  <LanguageSwitcher />
+                </Group>
 
-          {hasTelegramWebAppAuth && !showLoginForm && (
-            <>
-              <Button
-                color="blue"
-                leftSection={<IconBrandTelegram size={18} />}
-                onClick={handleTelegramWebAppAuth}
-                fullWidth
-                loading={loading}
-              >
-                {t('auth.loginWithTelegram')}
-              </Button>
+                <Box ta="center">
+                  <Text size="lg" fw={500}>
+                    {mode === 'login' ? t('auth.welcomeBack') : t('auth.createAccount')}
+                  </Text>
+                  <Text size="sm" c="dimmed" mt={4}>
+                    {mode === 'login' ? t('auth.loginSubtitle') : t('auth.registerSubtitle')}
+                  </Text>
+                </Box>
 
-              <Divider label={t('common.or')} labelPosition="center" />
-
-              <Button
-                variant="light"
-                onClick={() => setShowLoginForm(true)}
-                fullWidth
-              >
-                {t('auth.useLoginPassword')}
-              </Button>
-            </>
-          )}
-
-          {hasTelegramWidget && (
-            <>
-              <Center>
-                <TelegramLoginButton
-                  botName={config.TELEGRAM_BOT_NAME}
-                  onAuth={handleTelegramWidgetAuth}
-                  buttonSize="large"
-                  requestAccess="write"
-                />
-              </Center>
-
-              <Divider label={t('common.or')} labelPosition="center" />
-            </>
-          )}
-
-          {(!hasTelegramWebAppAuth || showLoginForm) && (
-            <>
-              <form onSubmit={handleSubmit}>
-                <Stack gap="sm">
-                  <TextInput
-                    label={t('auth.loginLabel')}
-                    placeholder={t('auth.loginPlaceholder')}
-                    value={formData.login}
-                    onChange={(e) => setFormData({ ...formData, login: e.target.value })}
-                    autoComplete="username"
-                    name="username"
-                  />
-                  <PasswordInput
-                    label={t('auth.passwordLabel')}
-                    placeholder={t('auth.passwordPlaceholder')}
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                    name="password"
-                  />
-                  {mode === 'register' && (
-                    <PasswordInput
-                      label={t('auth.confirmPasswordLabel')}
-                      placeholder={t('auth.confirmPasswordPlaceholder')}
-                      value={formData.confirmPassword}
-                      onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                      autoComplete="new-password"
-                      name="confirm-password"
-                    />
-                  )}
-                  <Button
-                    type="submit"
-                    leftSection={mode === 'login' ? <IconLogin size={18} /> : <IconUserPlus size={18} />}
-                    loading={loading}
-                  >
-                    {mode === 'login' ? t('auth.login') : t('auth.register')}
-                  </Button>
-                  {mode === 'login' && isWebAuthnSupported && hasTelegramWidget && (
+                {hasTelegramWebAppAuth && !showLoginForm && (
+                  <>
                     <Button
-                      variant="light"
-                      leftSection={<IconFingerprint size={18} />}
-                      loading={passkeyLoading}
-                      onClick={handlePasskeyAuth}
+                      size="lg"
+                      variant="gradient"
+                      gradient={{ from: '#24A1DE', to: '#1E7FB3' }}
+                      leftSection={<IconBrandTelegram size={20} />}
+                      onClick={handleTelegramWebAppAuth}
+                      fullWidth
+                      loading={loading}
+                      radius="md"
+                      className={classes.telegramButton}
                     >
-                      {t('passkey.loginWithPasskey')}
+                      {t('auth.loginWithTelegram')}
                     </Button>
-                  )}
-                </Stack>
-              </form>
 
-              <Text size="sm" ta="center">
-                {mode === 'login' ? (
-                  <>
-                    {t('auth.noAccount')}{' '}
-                    <Text component="span" c="blue" style={{ cursor: 'pointer' }} onClick={() => setMode('register')}>
-                      {t('auth.register')}
-                    </Text>
-                  </>
-                ) : (
-                  <>
-                    {t('auth.hasAccount')}{' '}
-                    <Text component="span" c="blue" style={{ cursor: 'pointer' }} onClick={() => setMode('login')}>
-                      {t('auth.login')}
-                    </Text>
+                    <Divider 
+                      label={t('common.or')} 
+                      labelPosition="center" 
+                      className={classes.divider}
+                    />
+
+                    <Button
+                      variant="subtle"
+                      onClick={() => setShowLoginForm(true)}
+                      fullWidth
+                      size="md"
+                      rightSection={<IconArrowRight size={16} />}
+                    >
+                      {t('auth.useLoginPassword')}
+                    </Button>
                   </>
                 )}
-              </Text>
 
-              {mode === 'login' && (
-                <Text size="sm" ta="center">
-                  <Text component="span" c="blue" style={{ cursor: 'pointer' }} onClick={() => setShowResetPassword(true)}>
-                    {t('auth.forgotPassword')}
-                  </Text>
-                </Text>
-              )}
+                {hasTelegramWidget && (
+                  <>
+                    <Center>
+                      <TelegramLoginButton
+                        botName={config.TELEGRAM_BOT_NAME}
+                        onAuth={handleTelegramWidgetAuth}
+                        buttonSize="large"
+                        requestAccess="write"
+                      />
+                    </Center>
 
-              {hasTelegramWebAppAuth && showLoginForm && (
-                <>
-                  <Divider label={t('common.or')} labelPosition="center" />
-                  <Button
-                    variant="outline"
-                    color="blue"
-                    leftSection={<IconBrandTelegram size={18} />}
-                    onClick={handleTelegramWebAppAuth}
-                    fullWidth
-                    loading={loading}
-                  >
-                    {t('auth.loginWithTelegram')}
-                  </Button>
-                </>
-              )}
-            </>
+                    <Divider 
+                      label={t('common.or')} 
+                      labelPosition="center" 
+                      className={classes.divider}
+                    />
+                  </>
+                )}
+
+                {(!hasTelegramWebAppAuth || showLoginForm) && (
+                  <>
+                    <form onSubmit={handleSubmit}>
+                      <Stack gap="md">
+                        <TextInput
+                          ref={loginInputRef}
+                          label={t('auth.loginLabel')}
+                          placeholder={t('auth.loginPlaceholder')}
+                          value={formData.login}
+                          onChange={(e) => setFormData({ ...formData, login: e.target.value })}
+                          autoComplete="username"
+                          name="username"
+                          size="md"
+                          leftSection={<IconKey size={16} />}
+                          required
+                          classNames={{ input: classes.input }}
+                        />
+                        
+                        <PasswordInput
+                          ref={passwordInputRef}
+                          label={t('auth.passwordLabel')}
+                          placeholder={t('auth.passwordPlaceholder')}
+                          value={formData.password}
+                          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                          autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                          name="password"
+                          size="md"
+                          leftSection={<IconLock size={16} />}
+                          required
+                          classNames={{ input: classes.input }}
+                        />
+
+                        {mode === 'register' && (
+                          <>
+                            <PasswordInput
+                              label={t('auth.confirmPasswordLabel')}
+                              placeholder={t('auth.confirmPasswordPlaceholder')}
+                              value={formData.confirmPassword}
+                              onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+                              autoComplete="new-password"
+                              name="confirm-password"
+                              size="md"
+                              leftSection={<IconLock size={16} />}
+                              required
+                              classNames={{ input: classes.input }}
+                            />
+
+                            {formData.password && (
+                              <Box>
+                                <Group justify="space-between" mb={4}>
+                                  <Text size="xs" fw={500}>
+                                    {t('auth.passwordStrength')}: {getPasswordStrengthText()}
+                                  </Text>
+                                  <Text size="xs" c="dimmed">{passwordStrength}%</Text>
+                                </Group>
+                                <Progress 
+                                  value={passwordStrength} 
+                                  color={getPasswordStrengthColor()} 
+                                  size="sm"
+                                  radius="xl"
+                                  animated
+                                />
+                              </Box>
+                            )}
+
+                            {formData.password && formData.password.length < 6 && (
+                              <Alert 
+                                variant="light" 
+                                color="yellow" 
+                                title={t('auth.passwordTooShort')}
+                                icon={<IconAlertCircle size={16} />}
+                                py={8}
+                              >
+                                <Text size="xs">{t('auth.passwordRequirements')}</Text>
+                              </Alert>
+                            )}
+                          </>
+                        )}
+
+                        <Button
+                          type="submit"
+                          size="lg"
+                          variant="gradient"
+                          gradient={mode === 'login' 
+                            ? { from: 'blue', to: 'cyan' } 
+                            : { from: 'green', to: 'teal' }
+                          }
+                          leftSection={mode === 'login' ? <IconLogin size={18} /> : <IconUserPlus size={18} />}
+                          loading={loading}
+                          fullWidth
+                          radius="md"
+                          className={classes.submitButton}
+                        >
+                          {mode === 'login' ? t('auth.login') : t('auth.register')}
+                        </Button>
+
+                        {mode === 'login' && isWebAuthnSupported && (
+                          <Button
+                            variant="light"
+                            leftSection={<IconFingerprint size={18} />}
+                            loading={passkeyLoading}
+                            onClick={handlePasskeyAuth}
+                            fullWidth
+                            size="md"
+                            radius="md"
+                          >
+                            {t('passkey.loginWithPasskey')}
+                          </Button>
+                        )}
+                      </Stack>
+                    </form>
+
+                    <Box ta="center" className={classes.switchMode}>
+                      {mode === 'login' ? (
+                        <Text size="sm">
+                          {t('auth.noAccount')}{' '}
+                          <Anchor 
+                            component="button" 
+                            type="button" 
+                            c="blue" 
+                            fw={500}
+                            onClick={() => setMode('register')}
+                          >
+                            {t('auth.register')}
+                          </Anchor>
+                        </Text>
+                      ) : (
+                        <Text size="sm">
+                          {t('auth.hasAccount')}{' '}
+                          <Anchor 
+                            component="button" 
+                            type="button" 
+                            c="blue" 
+                            fw={500}
+                            onClick={() => setMode('login')}
+                          >
+                            {t('auth.login')}
+                          </Anchor>
+                        </Text>
+                      )}
+                    </Box>
+
+                    {mode === 'login' && (
+                      <Box ta="center">
+                        <Anchor 
+                          component="button" 
+                          type="button" 
+                          c="dimmed" 
+                          size="sm"
+                          onClick={() => setShowResetPassword(true)}
+                        >
+                          {t('auth.forgotPassword')}
+                        </Anchor>
+                      </Box>
+                    )}
+
+                    {hasTelegramWebAppAuth && showLoginForm && (
+                      <>
+                        <Divider 
+                          label={t('common.or')} 
+                          labelPosition="center" 
+                          className={classes.divider}
+                        />
+                        <Button
+                          variant="outline"
+                          color="blue"
+                          leftSection={<IconBrandTelegram size={18} />}
+                          onClick={handleTelegramWebAppAuth}
+                          fullWidth
+                          loading={loading}
+                          size="md"
+                          radius="md"
+                        >
+                          {t('auth.loginWithTelegram')}
+                        </Button>
+                      </>
+                    )}
+                  </>
+                )}
+              </Stack>
+            </Card>
           )}
-        </Stack>
-      </Card>
+        </Transition>
+      </Container>
 
       <Modal
         opened={showOtp}
@@ -519,24 +877,34 @@ export default function Login() {
         }}
         title={
           <Group gap="xs">
-            <IconShieldLock size={20} />
-            <Text fw={500}>{t('otp.title')}</Text>
+            <ThemeIcon color="blue" variant="light" size="lg" radius="xl">
+              <IconShieldLock size={20} />
+            </ThemeIcon>
+            <Text fw={500} size="lg">{t('otp.verifyTitle')}</Text>
           </Group>
         }
         centered
+        radius="lg"
+        padding="lg"
       >
         <Stack gap="md">
-          <Text size="sm" c="dimmed">{t('otp.verifyDescription')}</Text>
+          <Alert variant="light" color="blue" icon={<IconDeviceMobile size={16} />}>
+            <Text size="sm">{t('otp.verifyDescription')}</Text>
+          </Alert>
+          
           <TextInput
             label={t('otp.enterCode')}
             placeholder="000000"
             value={otpToken}
-            onChange={(e) => setOtpToken(e.target.value.replace(/\D/g, '').slice(0, 8))}
-            maxLength={8}
+            onChange={(e) => setOtpToken(e.target.value.replace(/\D/g, '').slice(0, 6))}
+            maxLength={6}
             autoFocus
+            size="lg"
+            styles={{ input: { textAlign: 'center', fontSize: '24px', letterSpacing: '8px' } }}
           />
-          <Group justify="flex-end" gap="sm">
-            <Button variant="default" onClick={() => {
+          
+          <Group justify="flex-end" gap="sm" mt="md">
+            <Button variant="light" onClick={() => {
               setShowOtp(false);
               setOtpToken('');
             }}>
@@ -545,7 +913,8 @@ export default function Login() {
             <Button
               onClick={handleOtpSubmit}
               loading={loading}
-              disabled={!otpToken}
+              disabled={!otpToken || otpToken.length < 6}
+              color="blue"
             >
               {t('otp.verify')}
             </Button>
@@ -559,20 +928,35 @@ export default function Login() {
           setShowResetPassword(false);
           setResetLoading(false);
         }}
-        title={t('auth.resetPasswordTitle')}
+        title={
+          <Group gap="xs">
+            <ThemeIcon color="orange" variant="light" size="lg" radius="xl">
+              <IconMailForward size={20} />
+            </ThemeIcon>
+            <Text fw={500} size="lg">{t('auth.resetPasswordTitle')}</Text>
+          </Group>
+        }
         centered
+        radius="lg"
+        padding="lg"
       >
         <Stack gap="md">
-          <Text size="sm" c="dimmed">{t('auth.resetPasswordDescription')}</Text>
+          <Alert variant="light" color="orange">
+            <Text size="sm">{t('auth.resetPasswordDescription')}</Text>
+          </Alert>
+          
           <TextInput
             label={t('auth.loginOrEmail')}
             placeholder={t('auth.loginOrEmailPlaceholder')}
             value={formData.login_or_email}
             onChange={(e) => setFormData({ ...formData, login_or_email: e.target.value })}
             autoFocus
+            size="md"
+            leftSection={<IconKey size={16} />}
           />
-          <Group justify="flex-end" gap="sm">
-            <Button variant="default" onClick={() => {
+          
+          <Group justify="flex-end" gap="sm" mt="md">
+            <Button variant="light" onClick={() => {
               setShowResetPassword(false);
               setResetLoading(false);
             }}>
@@ -583,6 +967,7 @@ export default function Login() {
               onClick={handleResetPassword}
               loading={resetLoading}
               disabled={!formData.login_or_email}
+              color="orange"
             >
               {t('auth.resetPasswordSend')}
             </Button>
@@ -600,29 +985,63 @@ export default function Login() {
         }}
         title={
           <Group gap="xs">
-            <IconLock size={20} />
-            <Text fw={500}>{t('auth.newPasswordTitle')}</Text>
+            <ThemeIcon color="green" variant="light" size="lg" radius="xl">
+              <IconLock size={20} />
+            </ThemeIcon>
+            <Text fw={500} size="lg">{t('auth.newPasswordTitle')}</Text>
           </Group>
         }
         centered
+        radius="lg"
+        padding="lg"
       >
         <Stack gap="md">
-          <Text size="sm" c="dimmed">{t('auth.newPasswordDescription')}</Text>
+          <Alert variant="light" color="green">
+            <Text size="sm">{t('auth.newPasswordDescription')}</Text>
+          </Alert>
+          
           <PasswordInput
             label={t('auth.newPasswordLabel')}
             placeholder={t('auth.passwordPlaceholder')}
             value={newPasswordData.password}
             onChange={(e) => setNewPasswordData({ ...newPasswordData, password: e.target.value })}
             autoFocus
+            size="md"
+            leftSection={<IconLock size={16} />}
           />
+          
           <PasswordInput
             label={t('auth.confirmNewPasswordLabel')}
             placeholder={t('auth.confirmPasswordPlaceholder')}
             value={newPasswordData.confirmPassword}
             onChange={(e) => setNewPasswordData({ ...newPasswordData, confirmPassword: e.target.value })}
+            size="md"
+            leftSection={<IconLock size={16} />}
           />
-          <Group justify="flex-end" gap="sm">
-            <Button variant="default" onClick={() => {
+
+          {newPasswordData.password && (
+            <Box>
+              <Group justify="space-between" mb={4}>
+                <Text size="xs" fw={500}>{t('auth.passwordStrength')}:</Text>
+                <Text size="xs" c="dimmed">
+                  {newPasswordData.password.length < 6 
+                    ? t('auth.passwordTooShort') 
+                    : newPasswordData.password === newPasswordData.confirmPassword 
+                      ? t('auth.passwordsMatch') 
+                      : t('auth.passwordsMismatch')}
+                </Text>
+              </Group>
+              <Progress 
+                value={newPasswordData.password.length < 6 ? 30 : 100} 
+                color={newPasswordData.password.length < 6 ? 'red' : 'green'} 
+                size="sm"
+                radius="xl"
+              />
+            </Box>
+          )}
+          
+          <Group justify="flex-end" gap="sm" mt="md">
+            <Button variant="light" onClick={() => {
               setShowNewPasswordForm(false);
               removeResetTokenCookie();
               setResetToken(null);
@@ -634,7 +1053,8 @@ export default function Login() {
               leftSection={<IconLock size={16} />}
               onClick={handleNewPasswordSubmit}
               loading={resetLoading}
-              disabled={!newPasswordData.password || !newPasswordData.confirmPassword}
+              disabled={!newPasswordData.password || !newPasswordData.confirmPassword || newPasswordData.password !== newPasswordData.confirmPassword || newPasswordData.password.length < 6}
+              color="green"
             >
               {t('auth.resetPasswordButton')}
             </Button>
@@ -642,15 +1062,22 @@ export default function Login() {
         </Stack>
       </Modal>
 
-      {verifyingToken && (
-        <Modal opened={true} onClose={() => {}} withCloseButton={false} centered>
-          <Stack align="center" gap="md">
-            <Loader />
-            <Text>{t('auth.verifyingToken')}</Text>
-          </Stack>
-        </Modal>
-      )}
-
-    </Center>
+      <Modal
+        opened={verifyingToken}
+        onClose={() => {}}
+        withCloseButton={false}
+        centered
+        radius="lg"
+        padding="xl"
+      >
+        <Stack align="center" gap="lg">
+          <Loader size="lg" color="blue" />
+          <Text size="lg" fw={500}>{t('auth.verifyingToken')}</Text>
+          <Text size="sm" c="dimmed" ta="center">
+            {t('auth.verifyingTokenDescription')}
+          </Text>
+        </Stack>
+      </Modal>
+    </Box>
   );
 }
