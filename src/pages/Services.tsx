@@ -375,17 +375,25 @@ function ServiceDetail({ service, onDelete, onChangeTariff }: ServiceDetailProps
       // Если приложение не установлено, показываем уведомление через небольшую задержку
       setTimeout(() => {
         const downloadUrl = getDownloadUrl(appLink.name);
+        
+        // Показываем уведомление с просьбой скачать приложение
         notifications.show({
           title: t('services.appNotInstalled'),
           message: t('services.downloadAppFirst', { app: appLink.name }),
           color: 'yellow',
           autoClose: 10000,
-          actions: [
-            {
-              label: t('services.download'),
-              onClick: () => window.open(downloadUrl, '_blank')
-            }
-          ]
+        });
+        
+        // Также показываем дополнительное уведомление с кнопкой скачивания
+        notifications.show({
+          id: `download-${appLink.name}`,
+          title: t('services.download') + ' ' + appLink.name,
+          message: t('services.clickToDownload'),
+          color: 'blue',
+          autoClose: 15000,
+          onClick: () => {
+            window.open(downloadUrl, '_blank');
+          }
         });
       }, 1000);
     } catch (error) {
